@@ -199,24 +199,24 @@ log "Phase 5/5: Final configurations..."
 mkdir -p ~/.config/{hypr,kanshi,gammastep,gamemode}
 
 # Monitors config
-tee ~/.config/hypr/monitors.conf > /dev/null << 'EOF'
-monitor = DP-1, 2560x1440@144, 0x0, 1
-monitor = DP-2, 1920x1080@60, 2560x0, 1
-workspace = 1, monitor:DP-1, default:true
-workspace = 2, monitor:DP-1
-workspace = 3, monitor:DP-1
-workspace = 4, monitor:DP-1
-workspace = 5, monitor:DP-1
-workspace = 6, monitor:DP-2, default:true
-workspace = 7, monitor:DP-2
-workspace = 8, monitor:DP-2
-workspace = 9, monitor:DP-2
-workspace = 10, monitor:DP-2
-misc {
-    vrr = 1
-    mouse_move_focuses_monitor = true
-}
-EOF
+#tee ~/.config/hypr/monitors.conf > /dev/#null << 'EOF'
+#monitor = DP-1, 2560x1440@144, 0x0, 1
+#monitor = DP-2, 1920x1080@60, 2560x0, 1
+#workspace = 1, monitor:DP-1, default:true
+#workspace = 2, monitor:DP-1
+#workspace = 3, monitor:DP-1
+#workspace = 4, monitor:DP-1
+#workspace = 5, monitor:DP-1
+#workspace = 6, monitor:DP-2, default:true
+#workspace = 7, monitor:DP-2
+#workspace = 8, monitor:DP-2
+#workspace = 9, monitor:DP-2
+#workspace = 10, monitor:DP-2
+#misc {
+#    vrr = 1
+#    mouse_move_focuses_monitor = true
+#}
+#EOF
 
 # Kanshi
 tee ~/.config/kanshi/config > /dev/null << 'EOF'
