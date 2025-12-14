@@ -17,16 +17,18 @@ warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 info() { echo -e "${CYAN}[→]${NC} $1"; }
 
 cat << "EOF"
-╔════════════════════════════════════════════════════════════════╗
-║   ______           __          __  _                          ║
-║  / ____/___ ____  / /__  _____/ /_(_)___ _                    ║
-║ / /   / __ `/ _ \/ / _ \/ ___/ __/ / __ `/                    ║
-║/ /___/ /_/ /  __/ /  __(__  ) /_/ / /_/ /                     ║
-║\____/\__,_/\___/_/\___/____/\__/_/\__,_/                      ║
-║                                                                ║
-║   ULTIMATE ONE-CLICK INSTALLER                                ║
-║   ROG STRIX B550-XE + Ryzen 5800X + RTX 3060 + Dual Monitors ║
-╚════════════════════════════════════════════════════════════════╝
+╭─────────────────────────────────────────────────╮
+│      ______           __          __  _         │
+│     / ____/___ ____  / /__  _____/ /_(_)___ _   │
+│    / /   / __ `/ _ \/ / _ \/ ___/ __/ / __ `/   │
+│   / /___/ /_/ /  __/ /  __(__  ) /_/ / /_/ /    │
+│   \____/\__,_/\___/_/\___/____/\__/_/\__,_/     │
+│                                                 │
+│   Gaming Setup for:                             │
+│                            ROG STRIX B550-XE    │
+│                            Ryzen 7 5800X        │
+│                            RTX 3060 12GB        │
+╰─────────────────────────────────────────────────╯
 EOF
 
 info "This will install EVERYTHING:"
@@ -46,30 +48,11 @@ read -p "Continue? [Y/n] " -r
 # PHASE 1: UPDATE & SETUP CACHYOS
 # ============================================================================
 
-log "Phase 1/5: System update and CachyOS setup..."
-sudo pacman -Syu --noconfirm
-sudo pacman -S --needed --noconfirm git wget curl gcc make cmake nano vim fish base-devel ninja
-
-info "Adding CachyOS repositories..."
-cd /tmp
-curl https://mirror.cachyos.org/cachyos-repo.tar.xz -o cachyos-repo.tar.xz
-tar xvf cachyos-repo.tar.xz && cd cachyos-repo
-sudo ./cachyos-repo.sh
-cd /tmp
-
-if ! grep -q "cachyos" /etc/pacman.conf; then
-    sudo sed -i '/^\[core\]/i \
-[cachyos-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n\n\
-[cachyos-core-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n\n\
-[cachyos-extra-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n\n\
-[cachyos]\nInclude = /etc/pacman.d/cachyos-mirrorlist\n' /etc/pacman.conf
-fi
-
 sudo pacman -Sy
 sudo pacman -S --needed --noconfirm yay
 
 # ============================================================================
-# PHASE 2: AMD + NVIDIA + KERNEL
+# PHASE 2: AMD + NVIDIA
 # ============================================================================
 
 log "Phase 2/5: Hardware setup (Ryzen + RTX 3060 + CachyOS kernel)..."
