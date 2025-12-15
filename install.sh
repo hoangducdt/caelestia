@@ -197,7 +197,7 @@ sudo pacman -S --needed --noconfirm \
     freetype2 lib32-freetype2 fontconfig lib32-fontconfig \
     harfbuzz lib32-harfbuzz curl lib32-curl \
     openssl lib32-openssl libidn lib32-libidn \
-    zlib lib32-zlib bzip2 lib32-bzip2 xz lib32-xz zstd lib32-zstd
+    zlib bzip2 lib32-bzip2 xz lib32-xz zstd lib32-zstd
 
 timeout 300 yay -S --noconfirm --needed libicu50 || warn "libicu50 skip"
 
