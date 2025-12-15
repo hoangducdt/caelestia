@@ -246,7 +246,7 @@ install_unreal_engine() {
     # Compression libraries
     sudo pacman -S --needed --noconfirm \
         zlib \
-        lib32-zlib \
+        lib32-zlib-ng-compat \
         bzip2 \
         lib32-bzip2 \
         xz \
