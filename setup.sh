@@ -245,14 +245,15 @@ install_unreal_engine() {
     
     # Compression libraries
     sudo pacman -S --needed --noconfirm \
-        zlib \
-        lib32-zlib-ng-compat \
+        zlib-ng \
+        lib32-zlib-ng \
         bzip2 \
         lib32-bzip2 \
         xz \
         lib32-xz \
         zstd \
         lib32-zstd
+
     
     # Cài libicu50 từ AUR (required cho UE5)
     yay -S --noconfirm --needed libicu50
