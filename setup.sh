@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# CachyOS Auto Setup Script - AI/ML Enhanced Version
+# CachyOS Auto Setup Script - Creative Suite Enhanced Version
 # Hệ thống: ASUS ROG STRIX B550-XE | Ryzen 7 5800X | RTX 3060 12G | 32GB RAM
-# Mục đích: Gaming & C# Development + AI/ML với RTX 3060 12GB
+# Mục đích: Gaming, C# Dev, AI/ML, UE5, 3D/Creative Work với RTX 3060 12GB
 
 set -e
 
@@ -37,6 +37,10 @@ info() {
 
 ai_info() {
     echo -e "${MAGENTA}[AI/ML]${NC} $1" | tee -a "$LOG_FILE"
+}
+
+creative_info() {
+    echo -e "${CYAN}[CREATIVE]${NC} $1" | tee -a "$LOG_FILE"
 }
 
 check_root() {
@@ -299,478 +303,564 @@ install_ai_ml_stack() {
     ai_info "Bước 5: Cài đặt AI/ML Stack cho RTX 3060 12GB..."
     
     # CUDA Toolkit và cuDNN
-    ai_info "Cài đặt CUDA Toolkit và cuDNN..."
     sudo pacman -S --needed --noconfirm \
         cuda \
         cudnn \
-        python-pytorch-cuda \
-        python-tensorflow-cuda
+        python-pytorch-cuda
     
-    # Python và các dependencies
+    # Python development environment
     sudo pacman -S --needed --noconfirm \
         python \
         python-pip \
         python-virtualenv \
         python-numpy \
-        python-scipy \
-        python-matplotlib \
         python-pandas \
+        jupyter-notebook \
         python-scikit-learn \
-        jupyter-notebook
+        python-matplotlib \
+        python-pillow
     
-    # Ollama - Chạy LLMs local (Llama, Mistral, etc.)
-    ai_info "Cài đặt Ollama..."
+    # Ollama với CUDA support
     yay -S --noconfirm --needed ollama-cuda
     sudo systemctl enable --now ollama.service
     
-    # Stable Diffusion Web UI dependencies
-    ai_info "Chuẩn bị cho Stable Diffusion..."
-    sudo pacman -S --needed --noconfirm \
-        python-pillow \
-        python-requests \
-        python-tqdm \
-        ffmpeg
-    
-    # Text Generation WebUI dependencies
-    sudo pacman -S --needed --noconfirm \
-        python-transformers \
-        python-accelerate \
-        python-bitsandbytes
-    
-    # ComfyUI dependencies
-    sudo pacman -S --needed --noconfirm \
-        python-opencv \
-        python-einops
-    
-    # LM Studio alternative - Jan
+    # Jan - Desktop AI interface
     yay -S --noconfirm --needed jan-bin
     
-    # Koboldcpp cho text generation
+    # Koboldcpp với CUDA
     yay -S --noconfirm --needed koboldcpp-cuda
     
-    ai_info "✓ Đã cài đặt AI/ML Stack"
+    ai_info "✓ Đã cài đặt AI/ML Stack cơ bản"
 }
 
-# 6. Tạo môi trường AI/ML và cài các frameworks
+# 6. Setup AI environments
 setup_ai_environments() {
     ai_info "Bước 6: Thiết lập môi trường AI/ML..."
     
     mkdir -p "$HOME/AI-Projects"
-    cd "$HOME/AI-Projects"
+    mkdir -p "$HOME/AI-Models"
     
-    # Stable Diffusion WebUI
-    ai_info "Clone Stable Diffusion WebUI..."
-    if [ ! -d "stable-diffusion-webui" ]; then
+    # Stable Diffusion WebUI (AUTOMATIC1111)
+    if [ ! -d "$HOME/AI-Projects/stable-diffusion-webui" ]; then
+        ai_info "Cài đặt Stable Diffusion WebUI..."
+        cd "$HOME/AI-Projects"
         git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
-        cd stable-diffusion-webui
         
-        # Tạo launch script tối ưu cho RTX 3060
-        cat > "$HOME/.local/bin/sd-webui" <<'EOF'
-#!/bin/bash
-cd "$HOME/AI-Projects/stable-diffusion-webui"
-./webui.sh --xformers --medvram --api
-EOF
-        chmod +x "$HOME/.local/bin/sd-webui"
+        cd stable-diffusion-webui
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+        deactivate
     fi
-    
-    cd "$HOME/AI-Projects"
     
     # Text Generation WebUI (Oobabooga)
-    ai_info "Clone Text Generation WebUI..."
-    if [ ! -d "text-generation-webui" ]; then
+    if [ ! -d "$HOME/AI-Projects/text-generation-webui" ]; then
+        ai_info "Cài đặt Text Generation WebUI..."
+        cd "$HOME/AI-Projects"
         git clone https://github.com/oobabooga/text-generation-webui.git
-        cd text-generation-webui
         
-        cat > "$HOME/.local/bin/text-gen-webui" <<'EOF'
-#!/bin/bash
-cd "$HOME/AI-Projects/text-generation-webui"
-./start_linux.sh
-EOF
-        chmod +x "$HOME/.local/bin/text-gen-webui"
+        cd text-generation-webui
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+        pip install -r requirements.txt
+        deactivate
     fi
-    
-    cd "$HOME/AI-Projects"
     
     # ComfyUI
-    ai_info "Clone ComfyUI..."
-    if [ ! -d "ComfyUI" ]; then
+    if [ ! -d "$HOME/AI-Projects/ComfyUI" ]; then
+        ai_info "Cài đặt ComfyUI..."
+        cd "$HOME/AI-Projects"
         git clone https://github.com/comfyanonymous/ComfyUI.git
-        cd ComfyUI
-        pip install -r requirements.txt
         
-        cat > "$HOME/.local/bin/comfyui" <<'EOF'
-#!/bin/bash
-cd "$HOME/AI-Projects/ComfyUI"
-python main.py
-EOF
-        chmod +x "$HOME/.local/bin/comfyui"
+        cd ComfyUI
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+        pip install -r requirements.txt
+        deactivate
     fi
     
-    # Tạo Python virtual environment cho AI projects
-    ai_info "Tạo Python virtual environments..."
-    cd "$HOME/AI-Projects"
-    python -m venv ai-env
-    
-    # Cài các packages thông dụng
-    source ai-env/bin/activate
-    pip install --upgrade pip
-    pip install \
-        torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
-        tensorflow \
-        transformers \
-        diffusers \
-        accelerate \
-        bitsandbytes \
-        sentencepiece \
-        protobuf \
-        gradio \
-        openai \
-        anthropic \
-        langchain \
-        chromadb \
-        faiss-gpu
-    deactivate
-    
-    ai_info "✓ Đã thiết lập môi trường AI/ML"
+    ai_info "✓ Đã thiết lập các môi trường AI/ML"
 }
 
-# 7. Tạo helper scripts cho AI
+# 7. Create AI helper scripts
 create_ai_helper_scripts() {
-    ai_info "Bước 7: Tạo AI helper scripts..."
+    ai_info "Bước 7: Tạo helper scripts cho AI/ML..."
     
     mkdir -p "$HOME/.local/bin"
     
-    # Script kiểm tra CUDA và VRAM
+    # AI workspace overview
+    cat > "$HOME/.local/bin/ai-workspace" <<'EOF'
+#!/bin/bash
+echo "=== AI/ML Workspace Overview ==="
+echo ""
+echo "📁 Directories:"
+echo "  - AI Projects: $HOME/AI-Projects"
+echo "  - AI Models: $HOME/AI-Models"
+echo ""
+echo "🤖 Available Tools:"
+echo "  - Ollama (LLM): ollama-start"
+echo "  - Jan (Desktop AI): jan"
+echo "  - Stable Diffusion: sd-webui"
+echo "  - Text Generation: text-gen-webui"
+echo "  - ComfyUI: comfyui"
+echo ""
+echo "📊 Quick Commands:"
+echo "  - Check AI setup: check-ai-setup"
+echo "  - Monitor VRAM: monitor-vram"
+echo "  - Download models: ollama-download-recommended"
+EOF
+    chmod +x "$HOME/.local/bin/ai-workspace"
+    
+    # Check AI setup
     cat > "$HOME/.local/bin/check-ai-setup" <<'EOF'
 #!/bin/bash
-echo "=== CUDA & GPU Info ==="
-nvidia-smi
-echo ""
-echo "=== CUDA Version ==="
+echo "=== CUDA Check ==="
 nvcc --version
 echo ""
-echo "=== PyTorch CUDA Available ==="
-python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA Available: {torch.cuda.is_available()}'); print(f'CUDA Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"}')"
+echo "=== PyTorch CUDA Check ==="
+python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA Available: {torch.cuda.is_available()}'); print(f'CUDA Version: {torch.version.cuda}'); print(f'Device Count: {torch.cuda.device_count()}'); print(f'Device Name: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"}')"
 echo ""
-echo "=== TensorFlow GPU ==="
-python -c "import tensorflow as tf; print(f'TensorFlow: {tf.__version__}'); print(f'GPU Available: {len(tf.config.list_physical_devices(\"GPU\"))}')"
-echo ""
-echo "=== Ollama Status ==="
+echo "=== Ollama Service ==="
 systemctl status ollama.service --no-pager
+echo ""
+echo "=== VRAM Status ==="
+nvidia-smi --query-gpu=memory.used,memory.free,memory.total --format=csv
 EOF
     chmod +x "$HOME/.local/bin/check-ai-setup"
     
-    # Script khởi động Ollama với model
-    cat > "$HOME/.local/bin/ollama-start" <<'EOF'
-#!/bin/bash
-echo "Available models:"
-ollama list
-echo ""
-echo "Popular models for RTX 3060 12GB:"
-echo "  - llama3.2:3b (Fast, 3GB VRAM)"
-echo "  - mistral:7b (Balanced, 4-5GB VRAM)"
-echo "  - llama3.1:8b (Good quality, 5-6GB VRAM)"
-echo "  - codellama:7b (Code, 4-5GB VRAM)"
-echo ""
-read -p "Enter model name to run (e.g., llama3.2:3b): " model
-ollama run "$model"
-EOF
-    chmod +x "$HOME/.local/bin/ollama-start"
-    
-    # Script download models phổ biến
-    cat > "$HOME/.local/bin/ollama-download-recommended" <<'EOF'
-#!/bin/bash
-echo "Downloading recommended models for RTX 3060 12GB..."
-echo ""
-echo "1. Llama 3.2 3B (Fast, general purpose)"
-ollama pull llama3.2:3b
-echo ""
-echo "2. Mistral 7B (Balanced performance)"
-ollama pull mistral:7b
-echo ""
-echo "3. CodeLlama 7B (Programming)"
-ollama pull codellama:7b
-echo ""
-echo "Done! Run 'ollama list' to see installed models"
-EOF
-    chmod +x "$HOME/.local/bin/ollama-download-recommended"
-    
-    # Script monitor VRAM khi chạy AI
+    # Monitor VRAM
     cat > "$HOME/.local/bin/monitor-vram" <<'EOF'
 #!/bin/bash
-watch -n 1 'nvidia-smi --query-gpu=timestamp,name,temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.free,memory.used --format=csv,noheader,nounits'
+watch -n 1 'nvidia-smi --query-gpu=utilization.gpu,utilization.memory,memory.used,memory.free,memory.total,temperature.gpu --format=csv,noheader,nounits | awk -F, "{printf \"GPU: %s%% | VRAM: %s%% | Used: %sMB | Free: %sMB | Total: %sMB | Temp: %s°C\n\", \$1, \$2, \$3, \$4, \$5, \$6}"'
 EOF
     chmod +x "$HOME/.local/bin/monitor-vram"
     
-    # Script AI workspace
-    cat > "$HOME/.local/bin/ai-workspace" <<'EOF'
+    # Ollama start
+    cat > "$HOME/.local/bin/ollama-start" <<'EOF'
 #!/bin/bash
-echo "=== AI/ML Workspace ==="
-echo ""
-echo "Available tools:"
-echo "  1. Stable Diffusion WebUI    : sd-webui"
-echo "  2. Text Generation WebUI     : text-gen-webui"
-echo "  3. ComfyUI                   : comfyui"
-echo "  4. Ollama (LLMs)             : ollama-start"
-echo "  5. Jan (LM Studio)           : jan"
-echo "  6. Koboldcpp                 : koboldcpp"
-echo "  7. Jupyter Notebook          : jupyter notebook"
-echo ""
-echo "Helpers:"
-echo "  - Check AI setup   : check-ai-setup"
-echo "  - Monitor VRAM     : monitor-vram"
-echo "  - Download models  : ollama-download-recommended"
-echo ""
-echo "AI Projects: $HOME/AI-Projects"
-echo "Virtual env: source $HOME/AI-Projects/ai-env/bin/activate"
+echo "Starting Ollama service..."
+sudo systemctl start ollama.service
+echo "Ollama is running!"
+echo "Usage: ollama run <model-name>"
+echo "Example: ollama run llama3.2:3b"
 EOF
-    chmod +x "$HOME/.local/bin/ai-workspace"
+    chmod +x "$HOME/.local/bin/ollama-start"
+    
+    # Download recommended models
+    cat > "$HOME/.local/bin/ollama-download-recommended" <<'EOF'
+#!/bin/bash
+echo "Downloading recommended LLM models for RTX 3060 12GB..."
+echo ""
+echo "1. Llama 3.2 3B (Fast, ~3GB VRAM)"
+ollama pull llama3.2:3b
+echo ""
+echo "2. Mistral 7B (Balanced, ~4-5GB VRAM)"
+ollama pull mistral:7b
+echo ""
+echo "3. CodeLlama 7B (Coding, ~4-5GB VRAM)"
+ollama pull codellama:7b
+echo ""
+echo "All recommended models downloaded!"
+echo "Run with: ollama run <model-name>"
+EOF
+    chmod +x "$HOME/.local/bin/ollama-download-recommended"
+    
+    # Stable Diffusion WebUI launcher
+    cat > "$HOME/.local/bin/sd-webui" <<'EOF'
+#!/bin/bash
+if [ -d "$HOME/AI-Projects/stable-diffusion-webui" ]; then
+    cd "$HOME/AI-Projects/stable-diffusion-webui"
+    source venv/bin/activate
+    ./webui.sh --xformers --api
+else
+    echo "Stable Diffusion WebUI chưa được cài đặt!"
+fi
+EOF
+    chmod +x "$HOME/.local/bin/sd-webui"
+    
+    # Text Generation WebUI launcher
+    cat > "$HOME/.local/bin/text-gen-webui" <<'EOF'
+#!/bin/bash
+if [ -d "$HOME/AI-Projects/text-generation-webui" ]; then
+    cd "$HOME/AI-Projects/text-generation-webui"
+    source venv/bin/activate
+    python server.py --listen --api
+else
+    echo "Text Generation WebUI chưa được cài đặt!"
+fi
+EOF
+    chmod +x "$HOME/.local/bin/text-gen-webui"
+    
+    # ComfyUI launcher
+    cat > "$HOME/.local/bin/comfyui" <<'EOF'
+#!/bin/bash
+if [ -d "$HOME/AI-Projects/ComfyUI" ]; then
+    cd "$HOME/AI-Projects/ComfyUI"
+    source venv/bin/activate
+    python main.py --listen 0.0.0.0
+else
+    echo "ComfyUI chưa được cài đặt!"
+fi
+EOF
+    chmod +x "$HOME/.local/bin/comfyui"
     
     ai_info "✓ Đã tạo AI helper scripts"
 }
 
-# 8. Tối ưu hệ thống cho Ryzen 7 5800X và RTX 3060
-optimize_system() {
-    log "Bước 8: Tối ưu hệ thống cho gaming, AI/ML và UE5..."
+# 8. Install Blender with GPU optimization
+install_blender() {
+    creative_info "Bước 8: Cài đặt Blender với tối ưu CUDA/OptiX..."
     
-    # ROG STRIX B550-XE specific hardware support
-    log "Cài đặt drivers cho ROG STRIX B550-XE..."
+    # Install Blender
+    sudo pacman -S --needed --noconfirm blender
+    
+    # Install Blender dependencies for better performance
     sudo pacman -S --needed --noconfirm \
-        amd-ucode \
-        linux-firmware \
-        linux-firmware-qlogic \
-        alsa-firmware \
-        sof-firmware
+        openimagedenoise \
+        opencolorio \
+        opensubdiv \
+        openvdb \
+        embree \
+        openimageio \
+        alembic \
+        openjpeg2 \
+        openexr \
+        libspnav
     
-    # RGB Control cho ASUS ROG boards
-    log "Cài đặt OpenRGB cho ASUS Aura Sync..."
-    yay -S --noconfirm --needed \
-        openrgb-bin \
-        i2c-tools
+    # Create Blender config directory
+    mkdir -p "$HOME/.config/blender"
     
-    # Load i2c modules cho RGB control
-    sudo modprobe i2c-dev
-    sudo modprobe i2c-piix4
-    echo "i2c-dev" | sudo tee /etc/modules-load.d/i2c.conf
-    echo "i2c-piix4" | sudo tee -a /etc/modules-load.d/i2c.conf
+    # Create Blender launcher script with GPU optimization
+    cat > "$HOME/.local/bin/blender-gpu" <<'EOF'
+#!/bin/bash
+# Launch Blender with CUDA/OptiX enabled
+export CYCLES_CUDA_EXTRA_CFLAGS="-DCUDA_ENABLE_DEPRECATED_COMPUTE_TARGET"
+blender "$@"
+EOF
+    chmod +x "$HOME/.local/bin/blender-gpu"
     
-    # Add user to i2c group
-    sudo groupadd -f i2c
-    sudo usermod -aG i2c "$USER"
+    # Create Blender preferences script
+    cat > "$HOME/.local/bin/blender-setup-gpu" <<'EOF'
+#!/bin/bash
+echo "=== Blender GPU Setup Guide ==="
+echo ""
+echo "To enable CUDA/OptiX in Blender:"
+echo "1. Open Blender"
+echo "2. Go to Edit → Preferences"
+echo "3. Select 'System' tab"
+echo "4. Under 'Cycles Render Devices':"
+echo "   - Set to 'CUDA' or 'OptiX' (OptiX recommended for RTX)"
+echo "5. Check your GPU (NVIDIA GeForce RTX 3060)"
+echo "6. Click 'Save Preferences'"
+echo ""
+echo "For rendering:"
+echo "- Use OptiX for fastest ray tracing"
+echo "- Enable denoising (OptiX Denoiser)"
+echo "- Tile size: 256x256 or 512x512 for RTX"
+echo ""
+echo "Performance tips for RTX 3060 12GB:"
+echo "- Max samples for viewport: 128-256"
+echo "- Max samples for final render: 512-2048"
+echo "- Enable adaptive sampling"
+echo "- Use OptiX denoiser instead of more samples"
+EOF
+    chmod +x "$HOME/.local/bin/blender-setup-gpu"
     
-    # Udev rules cho OpenRGB
-    sudo tee /etc/udev/rules.d/60-openrgb.rules > /dev/null <<'RGBEOF'
-SUBSYSTEM=="usb", ATTR{idVendor}=="0b05", ATTR{idProduct}=="*", TAG+="uaccess"
-KERNEL=="i2c-[0-9]*", TAG+="uaccess"
-RGBEOF
-    
-    # Audio drivers cho Realtek ALC4080 (on ROG B550-XE)
-    log "Cấu hình audio cho Realtek ALC4080..."
-    sudo pacman -S --needed --noconfirm \
-        pulseaudio-alsa \
-        pavucontrol \
-        alsa-utils \
-        pipewire-alsa
-    
-    # Network drivers cho Intel I225-V 2.5G + Realtek RTL8125B
-    log "Cài đặt network drivers..."
-    sudo pacman -S --needed --noconfirm \
-        ethtool \
-        intel-media-driver \
-        r8168-dkms
-    
-    # Enable 2.5G Ethernet offloading
-    sudo tee /etc/systemd/network/99-ethernet-offload.link > /dev/null <<EOF
-[Match]
-Driver=r8169 igc
-
-[Link]
-ReceiveChecksumOffload=yes
-TransmitChecksumOffload=yes
-TCPSegmentationOffload=yes
-GenericSegmentationOffload=yes
+    # Create Desktop Entry for Blender
+    cat > "$HOME/.local/share/applications/blender-gpu.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Blender (GPU Optimized)
+Comment=3D Creation Suite with CUDA/OptiX
+Exec=$HOME/.local/bin/blender-gpu %f
+Icon=blender
+Terminal=false
+Categories=Graphics;3DGraphics;
+MimeType=application/x-blender;
 EOF
     
-    # WiFi 6E support (Intel AX210)
-    log "Cài đặt Intel WiFi 6E drivers..."
+    creative_info "✓ Đã cài đặt Blender với tối ưu GPU"
+}
+
+# 9. Install Adobe Creative Suite Alternatives
+install_creative_suite() {
+    creative_info "Bước 9: Cài đặt Adobe Creative Suite Alternatives..."
+    
+    # GIMP - Photoshop alternative
+    creative_info "Cài đặt GIMP (Photoshop alternative)..."
     sudo pacman -S --needed --noconfirm \
-        linux-firmware \
-        iw \
-        wireless_tools \
-        wpa_supplicant
+        gimp \
+        gimp-help-vi \
+        gimp-plugin-gmic \
+        gimp-nufraw
     
-    # Bluetooth support cho Intel AX210
+    # Krita - Digital painting
+    creative_info "Cài đặt Krita (Digital painting)..."
+    sudo pacman -S --needed --noconfirm krita
+    
+    # Inkscape - Illustrator alternative
+    creative_info "Cài đặt Inkscape (Illustrator alternative)..."
+    sudo pacman -S --needed --noconfirm inkscape
+    
+    # Kdenlive - Video editing (Premiere alternative)
+    creative_info "Cài đặt Kdenlive (Premiere alternative)..."
     sudo pacman -S --needed --noconfirm \
-        bluez \
-        bluez-utils \
-        blueman
+        kdenlive \
+        frei0r-plugins \
+        mediainfo \
+        mlt
     
-    sudo systemctl enable --now bluetooth.service
+    # DaVinci Resolve (Optional - Professional video editing)
+    creative_info "Thêm DaVinci Resolve vào danh sách tùy chọn..."
+    yay -S --noconfirm --needed davinci-resolve || warning "DaVinci Resolve không khả dụng hoặc cần cài thủ công"
     
-    # Kernel parameters tối ưu cho Ryzen + Gaming + AI
-    sudo tee /etc/sysctl.d/99-gaming-ai.conf > /dev/null <<EOF
+    # Audacity - Audio editing
+    creative_info "Cài đặt Audacity (Audio editing)..."
+    sudo pacman -S --needed --noconfirm audacity
+    
+    # Ardour - Professional DAW
+    sudo pacman -S --needed --noconfirm ardour
+    
+    # Scribus - InDesign alternative
+    creative_info "Cài đặt Scribus (InDesign alternative)..."
+    sudo pacman -S --needed --noconfirm scribus
+    
+    # Darktable - Lightroom alternative
+    creative_info "Cài đặt Darktable (Lightroom alternative)..."
+    sudo pacman -S --needed --noconfirm darktable
+    
+    # RawTherapee - RAW photo editor
+    sudo pacman -S --needed --noconfirm rawtherapee
+    
+    # Natron - After Effects alternative
+    yay -S --noconfirm --needed natron || warning "Natron không khả dụng từ AUR"
+    
+    # Supporting tools
+    sudo pacman -S --needed --noconfirm \
+        imagemagick \
+        graphicsmagick \
+        potrace \
+        fontforge
+    
+    creative_info "✓ Đã cài đặt Creative Suite alternatives"
+}
+
+# 10. Create Creative Suite helper scripts
+create_creative_suite_scripts() {
+    creative_info "Bước 10: Tạo helper scripts cho Creative Suite..."
+    
+    # Creative apps overview
+    cat > "$HOME/.local/bin/creative-apps" <<'EOF'
+#!/bin/bash
+echo "=== Creative Suite Applications ==="
+echo ""
+echo "🎨 Image Editing:"
+echo "  - GIMP (Photoshop): gimp"
+echo "  - Krita (Digital Painting): krita"
+echo "  - Darktable (Lightroom): darktable"
+echo "  - RawTherapee (RAW): rawtherapee"
+echo ""
+echo "🎬 Video Editing:"
+echo "  - Kdenlive (Premiere): kdenlive"
+echo "  - DaVinci Resolve: davinci-resolve (if installed)"
+echo "  - Natron (After Effects): natron (if installed)"
+echo ""
+echo "✏️ Vector & Design:"
+echo "  - Inkscape (Illustrator): inkscape"
+echo "  - Scribus (InDesign): scribus"
+echo ""
+echo "🎵 Audio:"
+echo "  - Audacity: audacity"
+echo "  - Ardour (DAW): ardour"
+echo ""
+echo "🔮 3D:"
+echo "  - Blender: blender-gpu"
+echo "  - Setup Blender GPU: blender-setup-gpu"
+EOF
+    chmod +x "$HOME/.local/bin/creative-apps"
+    
+    # Batch image converter using ImageMagick
+    cat > "$HOME/.local/bin/batch-convert-images" <<'EOF'
+#!/bin/bash
+if [ $# -lt 2 ]; then
+    echo "Usage: batch-convert-images <input-format> <output-format> [quality]"
+    echo "Example: batch-convert-images jpg png"
+    echo "Example: batch-convert-images png jpg 95"
+    exit 1
+fi
+
+INPUT_FORMAT="$1"
+OUTPUT_FORMAT="$2"
+QUALITY="${3:-95}"
+
+echo "Converting all .$INPUT_FORMAT files to .$OUTPUT_FORMAT (quality: $QUALITY)..."
+for file in *."$INPUT_FORMAT"; do
+    if [ -f "$file" ]; then
+        output="${file%.*}.$OUTPUT_FORMAT"
+        echo "Converting: $file -> $output"
+        convert "$file" -quality "$QUALITY" "$output"
+    fi
+done
+echo "Conversion complete!"
+EOF
+    chmod +x "$HOME/.local/bin/batch-convert-images"
+    
+    # Video transcode helper
+    cat > "$HOME/.local/bin/video-transcode" <<'EOF'
+#!/bin/bash
+if [ $# -lt 2 ]; then
+    echo "Usage: video-transcode <input-file> <output-file> [preset]"
+    echo "Presets: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow"
+    echo "Example: video-transcode input.mov output.mp4 fast"
+    exit 1
+fi
+
+INPUT="$1"
+OUTPUT="$2"
+PRESET="${3:-medium}"
+
+echo "Transcoding video with NVENC (GPU accelerated)..."
+ffmpeg -hwaccel cuda -i "$INPUT" \
+    -c:v h264_nvenc -preset "$PRESET" -b:v 10M \
+    -c:a aac -b:a 192k \
+    "$OUTPUT"
+echo "Transcoding complete: $OUTPUT"
+EOF
+    chmod +x "$HOME/.local/bin/video-transcode"
+    
+    # GIMP batch processor
+    cat > "$HOME/.local/bin/gimp-batch-resize" <<'EOF'
+#!/bin/bash
+if [ $# -lt 2 ]; then
+    echo "Usage: gimp-batch-resize <width> <height> *.jpg"
+    echo "Example: gimp-batch-resize 1920 1080 *.jpg"
+    exit 1
+fi
+
+WIDTH="$1"
+HEIGHT="$2"
+shift 2
+
+for img in "$@"; do
+    if [ -f "$img" ]; then
+        output="resized_${img}"
+        echo "Resizing: $img -> $output"
+        gimp -i -b "(let* ((image (car (gimp-file-load RUN-NONINTERACTIVE \"$img\" \"$img\"))) \
+                           (drawable (car (gimp-image-get-active-layer image)))) \
+                     (gimp-image-scale image $WIDTH $HEIGHT) \
+                     (gimp-file-save RUN-NONINTERACTIVE image drawable \"$output\" \"$output\") \
+                     (gimp-image-delete image))" -b "(gimp-quit 0)"
+    fi
+done
+echo "Batch resize complete!"
+EOF
+    chmod +x "$HOME/.local/bin/gimp-batch-resize"
+    
+    # Blender render script
+    cat > "$HOME/.local/bin/blender-render" <<'EOF'
+#!/bin/bash
+if [ $# -lt 1 ]; then
+    echo "Usage: blender-render <file.blend> [output-dir] [start-frame] [end-frame]"
+    echo "Example: blender-render project.blend ./renders 1 250"
+    exit 1
+fi
+
+BLEND_FILE="$1"
+OUTPUT_DIR="${2:-.}"
+START_FRAME="${3:-1}"
+END_FRAME="${4:-1}"
+
+mkdir -p "$OUTPUT_DIR"
+
+echo "Rendering $BLEND_FILE with GPU (CUDA/OptiX)..."
+blender -b "$BLEND_FILE" -o "$OUTPUT_DIR/frame_####" -s "$START_FRAME" -e "$END_FRAME" -a -- --cycles-device OPTIX
+
+echo "Render complete! Output: $OUTPUT_DIR"
+EOF
+    chmod +x "$HOME/.local/bin/blender-render"
+    
+    creative_info "✓ Đã tạo Creative Suite helper scripts"
+}
+
+# 11. Optimize system
+optimize_system() {
+    log "Bước 11: Tối ưu hệ thống..."
+    
+    # CPU Governor
+    sudo pacman -S --needed --noconfirm cpupower
+    sudo systemctl enable --now cpupower.service
+    
+    # Set performance governor
+    echo "governor='performance'" | sudo tee /etc/default/cpupower
+    sudo cpupower frequency-set -g performance
+    
+    # Sysctl optimizations
+    sudo tee /etc/sysctl.d/99-gaming.conf > /dev/null <<EOF
 # Gaming optimizations
 vm.swappiness=10
 vm.vfs_cache_pressure=50
 vm.dirty_ratio=10
 vm.dirty_background_ratio=5
 
-# Network optimizations (tối ưu cho 2.5G Ethernet)
-net.core.netdev_max_backlog=16384
-net.core.somaxconn=8192
-net.core.rmem_default=1048576
-net.core.rmem_max=16777216
-net.core.wmem_default=1048576
-net.core.wmem_max=16777216
-net.ipv4.tcp_rmem=4096 1048576 2097152
-net.ipv4.tcp_wmem=4096 65536 16777216
-net.ipv4.tcp_congestion_control=bbr
+# Network optimizations
 net.core.default_qdisc=cake
-net.ipv4.tcp_fastopen=3
+net.ipv4.tcp_congestion_control=bbr
+net.core.rmem_max=67108864
+net.core.wmem_max=67108864
+net.ipv4.tcp_rmem=4096 87380 67108864
+net.ipv4.tcp_wmem=4096 65536 67108864
 
-# Scheduler optimizations for Ryzen
-kernel.sched_autogroup_enabled=1
-kernel.sched_cfs_bandwidth_slice_us=500
-
-# AI/ML optimizations - more shared memory
+# AI/ML optimizations (large models)
 kernel.shmmax=68719476736
-kernel.shmall=4294967296
-
-# Ryzen 5800X specific - reduce latency
-kernel.sched_migration_cost_ns=5000000
-kernel.sched_nr_migrate=32
+kernel.shmall=16777216
 EOF
     
     sudo sysctl --system
     
-    # Enable multilib
-    if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
-        sudo sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
-        sudo pacman -Sy
-    fi
-    
-    # CPU frequency scaling cho Ryzen
-    sudo pacman -S --needed --noconfirm cpupower
-    sudo systemctl enable --now cpupower.service
-    
-    sudo tee /etc/default/cpupower > /dev/null <<EOF
-governor='performance'
-min_freq='800MHz'
-max_freq='4.7GHz'
-EOF
-    
-    # Ryzen power profile
-    sudo tee /etc/modprobe.d/ryzen.conf > /dev/null <<EOF
-options amd_pstate shared_mem=1
-EOF
-    
-    # NVIDIA power management
-    sudo tee /etc/modprobe.d/nvidia-power-management.conf > /dev/null <<EOF
-options nvidia NVreg_PreserveVideoMemoryAllocations=1
-options nvidia NVreg_TemporaryFilePath=/var/tmp
-options nvidia NVreg_EnableGpuFirmware=0
-options nvidia NVreg_DynamicPowerManagement=0x02
-EOF
-    
-    # Enable NVIDIA services
-    sudo systemctl enable nvidia-suspend.service
-    sudo systemctl enable nvidia-hibernate.service
-    sudo systemctl enable nvidia-resume.service
-    
-    # I/O Scheduler optimization (ROG boards thường có NVMe)
+    # I/O Scheduler optimization
     sudo tee /etc/udev/rules.d/60-ioschedulers.rules > /dev/null <<EOF
-# HDD - mq-deadline
-ACTION=="add|change", KERNEL=="sd[a-z]|hd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="mq-deadline"
-# SSD - bfq
-ACTION=="add|change", KERNEL=="sd[a-z]|hd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="bfq"
-# NVMe - none (best for PCIe 4.0)
-ACTION=="add|change", KERNEL=="nvme[0-9]n[0-9]", ATTR{queue/scheduler}="none"
+# NVMe - none scheduler (best for PCIe 4.0)
+ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"
+
+# SSD - bfq scheduler
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="bfq"
+
+# HDD - mq-deadline scheduler
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="mq-deadline"
 EOF
     
-    # USB optimization cho ROG board (nhiều USB ports)
-    sudo tee /etc/udev/rules.d/50-usb-power.rules > /dev/null <<EOF
-ACTION=="add", SUBSYSTEM=="usb", ATTR{power/autosuspend}="-1"
-EOF
-    
-    log "✓ Đã tối ưu hệ thống cho ROG STRIX B550-XE"
+    log "✓ Đã tối ưu hệ thống"
 }
 
-# 9. Cấu hình Multi-Monitor cho Hyprland
+# 12. Setup multi-monitor
 setup_multi_monitor() {
-    log "Bước 9: Cấu hình Multi-Monitor Support..."
+    log "Bước 12: Cài đặt công cụ multi-monitor..."
     
-    mkdir -p "$HOME/.config/hypr/conf.d"
+    sudo pacman -S --needed --noconfirm \
+        wlr-randr \
+        kanshi
     
-    cat > "$HOME/.config/hypr/conf.d/monitors.conf" <<'EOF'
-# Multi-Monitor Configuration
-# Tự động phát hiện monitors hoặc cấu hình thủ công
-
-# AUTO DETECTION (recommended)
-# Hyprland sẽ tự động cấu hình tất cả monitors
-monitor=,preferred,auto,1
-
-# MANUAL CONFIGURATION
-# Bỏ comment và chỉnh sửa theo monitors của bạn
-# Cú pháp: monitor=NAME,RES@REFRESH,POSITION,SCALE
-
-# Ví dụ: 2 monitors 1080p
-# monitor=DP-1,1920x1080@144,0x0,1        # Monitor chính (trái)
-# monitor=DP-3,1920x1080@60,1920x0,1  # Monitor phụ (phải)
-
-# Ví dụ: 1 monitor 1440p + 1 monitor 1080p
-# monitor=DP-1,2560x1440@144,0x0,1        # Monitor chính 1440p
-# monitor=DP-3,1920x1080@60,2560x0,1  # Monitor phụ 1080p
-
-# Ví dụ: 3 monitors
-# monitor=DP-1,1920x1080@144,0x0,1        # Trái
-# monitor=DP-2,1920x1080@144,1920x0,1     # Giữa (chính)
-# monitor=DP-3,1920x1080@60,3840x0,1  # Phải
-
-# Mirror mode (nhân bản màn hình)
-# monitor=DP-1,1920x1080@144,0x0,1
-# monitor=DP-3,mirror,DP-1
-
-# Tắt một monitor cụ thể
-# monitor=DP-3,disable
-
-# Workspace binding (gán workspace cho monitor)
-workspace=1,monitor:DP-1,default:true
-workspace=2,monitor:DP-1
-workspace=3,monitor:DP-1
-workspace=4,monitor:DP-1
-workspace=5,monitor:DP-1
-workspace=6,monitor:DP-3
-workspace=7,monitor:DP-3
-workspace=8,monitor:DP-3
-workspace=9,monitor:DP-3
-workspace=10,monitor:DP-3
-EOF
+    yay -S --noconfirm --needed nwg-displays
+    
+    mkdir -p "$HOME/.config/hypr/scripts"
     
     cat > "$HOME/.config/hypr/scripts/detect-monitors.sh" <<'EOF'
 #!/bin/bash
-echo "Detecting monitors..."
-hyprctl monitors | grep "Monitor"
-echo ""
-echo "Available outputs:"
-hyprctl monitors -j | jq -r '.[] | "\(.name): \(.width)x\(.height)@\(.refreshRate)Hz"'
+wlr-randr
 EOF
-    
     chmod +x "$HOME/.config/hypr/scripts/detect-monitors.sh"
     
-    if [ -f "$HOME/.config/hypr/hyprland.conf" ]; then
-        if ! grep -q "source.*monitors.conf" "$HOME/.config/hypr/hyprland.conf"; then
-            echo "source = ~/.config/hypr/conf.d/monitors.conf" >> "$HOME/.config/hypr/hyprland.conf"
-        fi
-    fi
-    
-    sudo pacman -S --needed --noconfirm wlr-randr nwg-displays
-    
-    log "✓ Đã cấu hình Multi-Monitor Support"
+    log "✓ Đã cài đặt công cụ multi-monitor"
 }
 
-# 10. Cài đặt Fcitx5 Bamboo
+# 13. Install Vietnamese input
 install_vietnamese_input() {
-    log "Bước 10: Cài đặt Fcitx5 Bamboo..."
+    log "Bước 13: Cài đặt Fcitx5 Bamboo..."
     
     sudo pacman -S --needed --noconfirm \
         fcitx5 \
@@ -798,9 +888,9 @@ EOF
     log "✓ Đã cài đặt Fcitx5 Bamboo"
 }
 
-# 11. Cài đặt SDDM với Sugar Candy theme
+# 14. Install SDDM
 install_sddm() {
-    log "Bước 11: Cài đặt SDDM và Sugar Candy theme..."
+    log "Bước 14: Cài đặt SDDM và Sugar Candy theme..."
     
     sudo pacman -S --needed --noconfirm sddm qt5-graphicaleffects qt5-quickcontrols2 qt5-svg
     
@@ -831,9 +921,9 @@ EOF
     log "✓ Đã cài đặt SDDM với Sugar Candy theme"
 }
 
-# 12. Tạo thư mục và tải wallpapers
+# 15. Setup directories
 setup_directories() {
-    log "Bước 12: Tạo thư mục và tải wallpapers..."
+    log "Bước 15: Tạo thư mục và tải wallpapers..."
     
     mkdir -p "$HOME/Desktop"
     mkdir -p "$HOME/Documents"
@@ -844,6 +934,8 @@ setup_directories() {
     mkdir -p "$HOME/.config/hypr/scripts"
     mkdir -p "$HOME/AI-Projects"
     mkdir -p "$HOME/AI-Models"
+    mkdir -p "$HOME/Creative-Projects"
+    mkdir -p "$HOME/Blender-Projects"
     
     if [ ! -d "$HOME/Pictures/Wallpapers/.git" ]; then
         git clone https://github.com/mylinuxforwork/wallpaper.git "$HOME/Pictures/Wallpapers"
@@ -854,9 +946,9 @@ setup_directories() {
     log "✓ Đã tạo thư mục và tải wallpapers"
 }
 
-# 13. Cài đặt OBS Studio và streaming tools
+# 16. Install streaming tools
 install_streaming_tools() {
-    log "Bước 13: Cài đặt OBS Studio và streaming tools..."
+    log "Bước 16: Cài đặt OBS Studio và streaming tools..."
     
     # OBS Studio với NVIDIA NVENC support
     sudo pacman -S --needed --noconfirm \
@@ -876,12 +968,11 @@ install_streaming_tools() {
         obs-studio-browser \
         obs-websocket
     
-    # Vencord (Discord mod) - Better Discord experience
+    # Vencord (Discord mod)
     log "Cài đặt Vencord..."
-    yay -S --noconfirm --needed \
-        vesktop-bin
+    yay -S --noconfirm --needed vesktop-bin
     
-    # Streaming và recording utilities
+    # Streaming utilities
     sudo pacman -S --needed --noconfirm \
         ffmpeg \
         x264 \
@@ -889,16 +980,16 @@ install_streaming_tools() {
         libva-mesa-driver \
         mesa-vdpau
     
-    # Load v4l2loopback module for virtual camera
+    # Load v4l2loopback module
     sudo modprobe v4l2loopback
     echo "v4l2loopback" | sudo tee /etc/modules-load.d/v4l2loopback.conf
     
     log "✓ Đã cài đặt OBS Studio và Vencord"
 }
 
-# 14. Cài đặt utilities bổ sung
+# 17. Install utilities
 install_utilities() {
-    log "Bước 14: Cài đặt các công cụ bổ sung..."
+    log "Bước 17: Cài đặt các công cụ bổ sung..."
     
     sudo pacman -S --needed --noconfirm \
         htop \
@@ -916,9 +1007,7 @@ install_utilities() {
         ripgrep \
         fd \
         fzf \
-        zoxide
-    
-    sudo pacman -S --needed --noconfirm \
+        zoxide \
         nvtop \
         amdgpu_top \
         iotop \
@@ -927,9 +1016,9 @@ install_utilities() {
     log "✓ Đã cài đặt các công cụ bổ sung"
 }
 
-# 15. Tạo scripts hữu ích
+# 18. Create helper scripts
 create_helper_scripts() {
-    log "Bước 15: Tạo các helper scripts..."
+    log "Bước 18: Tạo các helper scripts..."
     
     mkdir -p "$HOME/.local/bin"
     
@@ -977,6 +1066,7 @@ BACKUP_DIR="$HOME/Documents/config-backups/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 cp -r ~/.config/hypr "$BACKUP_DIR/"
 cp -r ~/.config/fcitx5 "$BACKUP_DIR/"
+cp -r ~/.config/blender "$BACKUP_DIR/" 2>/dev/null
 echo "Configs backed up to: $BACKUP_DIR"
 EOF
     chmod +x "$HOME/.local/bin/backup-configs"
@@ -992,9 +1082,9 @@ EOF
 main() {
     clear
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║    CachyOS Setup - Gaming, C# Dev, AI/ML & UE5 (RTX 3060)     ║${NC}"
+    echo -e "${GREEN}║    CachyOS Creative Suite Setup (Gaming+Dev+AI/ML+3D)         ║${NC}"
     echo -e "${GREEN}║    Hardware: Ryzen 7 5800X | RTX 3060 12GB | 32GB RAM         ║${NC}"
-    echo -e "${MAGENTA}║   ✨ AI/ML + Unreal Engine 5 Support                         ║${NC}"
+    echo -e "${MAGENTA}║   ✨ Blender + Adobe Alternatives + AI/ML + UE5              ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
@@ -1011,6 +1101,9 @@ main() {
     install_ai_ml_stack
     setup_ai_environments
     create_ai_helper_scripts
+    install_blender
+    install_creative_suite
+    create_creative_suite_scripts
     optimize_system
     setup_multi_monitor
     install_vietnamese_input
@@ -1029,11 +1122,13 @@ main() {
     echo "  1. Khởi động lại hệ thống: sudo reboot"
     echo "  2. Đăng nhập vào Hyprland từ SDDM"
     echo ""
-    echo -e "${MAGENTA}  🎮 Unreal Engine 5:${NC}"
-    echo "  - Download: https://www.unrealengine.com/linux"
-    echo "  - Giải nén vào: ~/UnrealEngine/"
-    echo "  - Chạy: ue5"
-    echo "  - Desktop: Launch từ menu Applications"
+    echo -e "${CYAN}  🎨 Creative Suite Applications:${NC}"
+    echo "  - View all apps: creative-apps"
+    echo "  - Blender (GPU): blender-gpu"
+    echo "  - Setup Blender GPU: blender-setup-gpu"
+    echo "  - GIMP: gimp"
+    echo "  - Inkscape: inkscape"
+    echo "  - Kdenlive: kdenlive"
     echo ""
     echo -e "${MAGENTA}  🤖 AI/ML Quick Start:${NC}"
     echo "  - Xem workspace: ai-workspace"
@@ -1043,18 +1138,18 @@ main() {
     echo "  - Stable Diffusion: sd-webui"
     echo "  - Monitor VRAM: monitor-vram"
     echo ""
+    echo -e "${MAGENTA}  🎮 Unreal Engine 5:${NC}"
+    echo "  - Download: https://www.unrealengine.com/linux"
+    echo "  - Giải nén vào: ~/UnrealEngine/"
+    echo "  - Chạy: ue5"
+    echo ""
     echo -e "${CYAN}  🎥 Streaming & Recording:${NC}"
     echo "  - OBS Studio: obs (NVIDIA NVENC support)"
     echo "  - Vencord/Vesktop: vesktop"
     echo "  - Virtual camera: Enabled (v4l2loopback)"
     echo ""
-    echo "  📺 Multi-Monitor:"
-    echo "  - Phát hiện: ~/.config/hypr/scripts/detect-monitors.sh"
-    echo "  - GUI tool: nwg-displays"
-    echo ""
     echo -e "${CYAN}  🌈 ROG RGB Control:${NC}"
     echo "  - OpenRGB: rgb-control"
-    echo "  - ASUS Aura Sync compatible"
     echo ""
     echo "  ⚡ Performance:"
     echo "  - Kiểm tra GPU: check-gpu"
