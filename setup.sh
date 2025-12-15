@@ -108,7 +108,13 @@ install_hyprland_caelestia() {
 install_gaming_dev_packages() {
     log "Bước 3: Cài đặt driver NVIDIA và môi trường gaming/dev..."
     
+    # Xử lý xung đột NVIDIA package
+    warning "Kiểm tra và gỡ các package NVIDIA xung đột..."
+    sudo pacman -R --noconfirm linux-cachyos-lts-nvidia-open 2>/dev/null || true
+    sudo pacman -R --noconfirm nvidia-open-dkms 2>/dev/null || true
+    
     # NVIDIA drivers với tất cả dependencies
+    log "Cài đặt NVIDIA drivers (proprietary)..."
     sudo pacman -S --needed --noconfirm \
         nvidia-dkms \
         nvidia-utils \
@@ -512,7 +518,7 @@ EOF
     ai_info "✓ Đã tạo AI helper scripts"
 }
 
-# 8. Install Blender with GPU optimization
+# 8. NEW: Install Blender with GPU optimization
 install_blender() {
     creative_info "Bước 8: Cài đặt Blender với tối ưu CUDA/OptiX..."
     
@@ -587,7 +593,7 @@ EOF
     creative_info "✓ Đã cài đặt Blender với tối ưu GPU"
 }
 
-# 9. Install Adobe Creative Suite Alternatives
+# 9. NEW: Install Adobe Creative Suite Alternatives
 install_creative_suite() {
     creative_info "Bước 9: Cài đặt Adobe Creative Suite Alternatives..."
     
@@ -650,7 +656,7 @@ install_creative_suite() {
     creative_info "✓ Đã cài đặt Creative Suite alternatives"
 }
 
-# 10. Create Creative Suite helper scripts
+# 10. NEW: Create Creative Suite helper scripts
 create_creative_suite_scripts() {
     creative_info "Bước 10: Tạo helper scripts cho Creative Suite..."
     
@@ -1082,8 +1088,8 @@ EOF
 main() {
     clear
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║    CachyOS Creative Suite Setup (Gaming+Dev+AI/ML+3D)         ║${NC}"
-    echo -e "${GREEN}║    Hardware: Ryzen 7 5800X | RTX 3060 12GB | 32GB RAM         ║${NC}"
+    echo -e "${GREEN}║    CachyOS Creative Suite Setup (Gaming+Dev+AI/ML+3D)        ║${NC}"
+    echo -e "${GREEN}║    Hardware: Ryzen 7 5800X | RTX 3060 12GB | 32GB RAM        ║${NC}"
     echo -e "${MAGENTA}║   ✨ Blender + Adobe Alternatives + AI/ML + UE5              ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
