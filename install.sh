@@ -169,8 +169,8 @@ log "✓ Hyprland"
 log "Installing Gaming + Dev..."
 sudo pacman -S --needed --noconfirm \
     cachyos-gaming-meta cachyos-gaming-applications \
-    steam lutris wine-staging \
-    mangohud lib32-mangohud gamemode lib32-gamemode gamescope \
+    wine-staging \
+    lib32-mangohud gamemode lib32-gamemode \
     dotnet-sdk dotnet-runtime aspnet-runtime mono mono-msbuild \
     code neovim docker docker-compose git github-cli
 
