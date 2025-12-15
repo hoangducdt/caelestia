@@ -289,7 +289,7 @@ creative_info "✓ Creative Suite"
 log "Installing streaming tools..."
 sudo pacman -S --needed --noconfirm \
     v4l2loopback-dkms pipewire pipewire-pulse \
-    pipewire-jack wireplumber gstreamer-vaapi
+wireplumber gstreamer-vaapi
 
 timeout 300 yay -S --noconfirm --needed obs-vkcapture || warn "obs-vkcapture skip"
 timeout 300 yay -S --noconfirm --needed obs-websocket || warn "obs-websocket skip"
