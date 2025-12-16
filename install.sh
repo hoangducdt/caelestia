@@ -332,13 +332,32 @@ sudo sysctl --system >/dev/null 2>&1 || true
 log "✓ System optimization"
 
 # ===== MULTI-MONITOR =====
-log "Installing multi-monitor tools..."
+log "Configuring multi-monitor setup..."
 sudo pacman -S --needed --noconfirm wlr-randr kanshi
 timeout 300 yay -S --noconfirm --needed nwg-displays || warn "nwg-displays skip"
 
+mkdir -p "$HOME/.config/hypr/hyprland"
 mkdir -p "$HOME/.config/hypr/scripts"
 
-log "✓ Multi-monitor"
+# Add monitor configuration to monitors.conf
+cat >> "$HOME/.config/hypr/hyprland/monitors.conf" <<MONITORS
+monitor=DP-1,2560x1080@99.94,0x0,1.0
+monitor=DP-3,1920x1080@74.97,2560x0,1.0
+MONITORS
+
+# Add NVIDIA environment variables to hyprland/env.conf
+mkdir -p "$HOME/.config/hypr/hyprland"
+cat >> "$HOME/.config/hypr/hyprland/env.conf" <<NVIDIA
+
+# NVIDIA Environment Variables
+env = LIBVA_DRIVER_NAME,nvidia
+env = XDG_SESSION_TYPE,wayland
+env = GBM_BACKEND,nvidia-drm
+env = __GLX_VENDOR_LIBRARY_NAME,nvidia
+env = WLR_NO_HARDWARE_CURSORS,1
+NVIDIA
+
+log "✓ Multi-monitor configured"
 
 # ===== VIETNAMESE INPUT =====
 log "Installing Vietnamese input..."
@@ -347,21 +366,39 @@ sudo pacman -S --needed --noconfirm \
 
 timeout 300 yay -S --noconfirm --needed fcitx5-bamboo-git || warn "Fcitx5 Bamboo skip"
 
-mkdir -p "$HOME/.config/environment.d"
-cat > "$HOME/.config/environment.d/fcitx5.conf" <<FCITX
-GTK_IM_MODULE=fcitx
-QT_IM_MODULE=fcitx
-XMODIFIERS=@im=fcitx
-SDL_IM_MODULE=fcitx
-GLFW_IM_MODULE=fcitx
+# Add Vietnamese Input environment variables to hyprland/env.conf
+cat >> "$HOME/.config/hypr/hyprland/env.conf" <<FCITX
+
+# Vietnamese Input - Fcitx5
+env = GTK_IM_MODULE,fcitx
+env = QT_IM_MODULE,fcitx
+env = XMODIFIERS,@im=fcitx
+env = SDL_IM_MODULE,fcitx
+env = GLFW_IM_MODULE,fcitx
 FCITX
 
-if [ -f "$HOME/.config/hypr/hyprland.conf" ]; then
-    grep -q "fcitx5" "$HOME/.config/hypr/hyprland.conf" || \
-        echo "exec-once = fcitx5 -d" >> "$HOME/.config/hypr/hyprland.conf"
+# Add fcitx5 autostart to execs.conf
+if [ -f "$HOME/.config/hypr/hyprland/execs.conf" ]; then
+    grep -q "fcitx5" "$HOME/.config/hypr/hyprland/execs.conf" || \
+        echo "exec-once = fcitx5 -d" >> "$HOME/.config/hypr/hyprland/execs.conf"
 fi
 
-log "✓ Vietnamese input"
+# Configure VRR in misc.conf
+if [ -f "$HOME/.config/hypr/hyprland/misc.conf" ]; then
+    # Update existing misc.conf to set vrr = 0
+    sed -i 's/vrr = [0-9]/vrr = 0/' "$HOME/.config/hypr/hyprland/misc.conf"
+else
+    # Create new misc.conf if it doesn't exist
+    cat > "$HOME/.config/hypr/hyprland/misc.conf" <<MISC
+misc {
+    vrr = 0
+    disable_hyprland_logo = true
+    disable_splash_rendering = true
+}
+MISC
+fi
+
+log "✓ Vietnamese input configured"
 
 # ===== SDDM + SUGAR CANDY =====
 log "Installing SDDM + Sugar Candy theme..."
@@ -671,8 +708,9 @@ echo "  ✓ AI/ML stack (Ollama, Stable Diffusion, Text Gen, ComfyUI)"
 echo "  ✓ Blender with GPU optimization"
 echo "  ✓ Creative Suite (GIMP, Inkscape, Kdenlive, etc.)"
 echo "  ✓ Streaming tools (OBS, Vesktop)"
-echo "  ✓ Multi-monitor support"
-echo "  ✓ Vietnamese input (Fcitx5 Bamboo)"
+echo "  ✓ Multi-monitor support (DP-1: 2560x1080@99.94, DP-3: 1920x1080@74.97)"
+echo "  ✓ Vietnamese input (Fcitx5 Bamboo) - configured in hyprland/env.conf"
+echo "  ✓ VRR disabled in misc.conf"
 echo "  ✓ SDDM + Sugar Candy theme"
 echo "  ✓ Wallpapers collection"
 echo "  ✓ System optimizations"
