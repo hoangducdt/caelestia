@@ -24,61 +24,91 @@ gaming_info() { echo -e "${BLUE}[GAMING]${NC} $1" | tee -a "$LOG_FILE"; }
 clear
 echo -e "${GREEN}"
 cat << "EOF"
-╭────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ ▀████    ███                                                 ▀█████████▄             █         │
-│   ███    ███                 ▀▀▀▀                              ███    ███          █           │
-│   ███    ███    ▄██████▄  ▀███████▄  ▀████████▄   ▄██████▄     ███    ███ ███   ███▀ ▄██████▄  │
-│  ▄███▄▄▄▄███▄▄ ███    ███       ▀███  ███    ███ ███    ███   ▄███▄▄▄ ███ ███   ███ ███    ███ │
-│ ▀▀███▀▀▀▀███▀  ███    ███  ▄████████  ███    ███ ███    ███  ▀▀███▀▀▀ ███ ███   ███ ███        │
-│   ███    ███   ███    ███ ███    ███  ███    ███ ███    ███    ███    ███ ███   ███ ███        │
-│   ███    ███   ███    ███ ███    ███  ███    ███ ███    ███    ███    ███ ███   ███ ███    ███ │
-│   ███    ████▄  ▀██████▀   ▀████████▄ ███    ███  ▀████████  ▄█████████▀   ▀█████▀   ▀██████▀  │
-│                                                        ▄███                                    │
-│                                                 ▄████████▀                                     │
-│   COMPLETE INSTALLER - Safe Gaming Optimizations                                               │
-│                        ROG STRIX B550-XE │ Ryzen 7 5800X │ RTX 3060 12GB                       │
-╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────────────────────────────────────────────────────╮
+│    ▄████████     ███        ▄█    █▄       ▄████████ ███▄▄▄▄      ▄████████ │
+│   ███    ███ ▀█████████▄   ███    ███     ███    ███ ███▀▀▀██▄   ███    ███ │
+│   ███    ███    ▀███▀▀██   ███    ███     ███    █▀  ███   ███   ███    ███ │
+│   ███    ███     ███   ▀  ▄███▄▄▄▄███▄▄  ▄███▄▄▄     ███   ███   ███    ███ │
+│ ▀███████████     ███     ▀▀███▀▀▀▀███▀  ▀▀███▀▀▀     ███   ███ ▀███████████ │
+│   ███    ███     ███       ███    ███     ███    █▄  ███   ███   ███    ███ │
+│   ███    ███     ███       ███    ███     ███    ███ ███   ███   ███    ███ │
+│   ███    █▀     ▄████▀     ███    █▀      ██████████  ▀█   █▀    ███    █▀  │
+│   COMPLETE INSTALLER - CachyOS Compatible Gaming Edition                    │
+│             ROG STRIX B550-XE │ Ryzen 7 5800X │ RTX 3060 12GB               │
+╰─────────────────────────────────────────────────────────────────────────────╯
 EOF
 echo -e "${NC}"
 
-log "Starting complete installation with safe gaming optimizations..."
+log "Starting CachyOS-compatible gaming installation..."
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  🔍 CONFLICT DETECTION & PREVENTION
+#  🔍 SMART DETECTION - CachyOS NVIDIA DRIVERS
 # ═══════════════════════════════════════════════════════════════════════════
 
-gaming_info "Checking existing CachyOS gaming packages..."
+gaming_info "Detecting NVIDIA driver configuration..."
 
-# Check if cachyos-gaming-meta is already installed
+# Check for CachyOS NVIDIA kernel modules
+CACHYOS_NVIDIA_KERNEL=false
+if pacman -Q linux-cachyos-nvidia &>/dev/null || \
+   pacman -Q linux-cachyos-lts-nvidia &>/dev/null || \
+   pacman -Q linux-cachyos-nvidia-open &>/dev/null || \
+   pacman -Q linux-cachyos-lts-nvidia-open &>/dev/null; then
+    CACHYOS_NVIDIA_KERNEL=true
+    gaming_info "✓ CachyOS NVIDIA kernel modules detected"
+fi
+
+# Check for standard NVIDIA drivers
+NVIDIA_DKMS_INSTALLED=false
+if pacman -Q nvidia-dkms &>/dev/null || pacman -Q nvidia &>/dev/null; then
+    NVIDIA_DKMS_INSTALLED=true
+    gaming_info "✓ Standard NVIDIA drivers detected"
+fi
+
+# Determine NVIDIA installation strategy
+NEED_NVIDIA_UTILS=false
+if [ "$CACHYOS_NVIDIA_KERNEL" = true ] || [ "$NVIDIA_DKMS_INSTALLED" = true ]; then
+    gaming_info "✓ NVIDIA kernel module already present"
+    # Only need userspace utilities
+    NEED_NVIDIA_UTILS=true
+else
+    gaming_info "⚠ No NVIDIA drivers detected"
+    echo ""
+    echo -e "${YELLOW}NVIDIA Driver Installation Options:${NC}"
+    echo -e "  1) Use CachyOS NVIDIA kernel (recommended for CachyOS)"
+    echo -e "  2) Install standard nvidia-dkms"
+    echo -e "  3) Skip NVIDIA installation"
+    echo ""
+    read -p "Choose option (1-3): " -n 1 -r NVIDIA_CHOICE
+    echo ""
+    
+    case $NVIDIA_CHOICE in
+        1)
+            gaming_info "Will install CachyOS NVIDIA kernel"
+            INSTALL_CACHYOS_NVIDIA=true
+            ;;
+        2)
+            gaming_info "Will install standard nvidia-dkms"
+            INSTALL_NVIDIA_DKMS=true
+            ;;
+        *)
+            gaming_info "Skipping NVIDIA installation"
+            ;;
+    esac
+fi
+
+# Check existing CachyOS gaming packages
 if pacman -Q cachyos-gaming-meta &>/dev/null; then
-    gaming_info "✓ cachyos-gaming-meta detected - skipping duplicate packages"
+    gaming_info "✓ cachyos-gaming-meta detected"
     CACHYOS_GAMING_INSTALLED=true
 else
     CACHYOS_GAMING_INSTALLED=false
 fi
 
-# Check if cachyos-gaming-applications is already installed
 if pacman -Q cachyos-gaming-applications &>/dev/null; then
-    gaming_info "✓ cachyos-gaming-applications detected - skipping duplicate launchers"
+    gaming_info "✓ cachyos-gaming-applications detected"
     CACHYOS_APPS_INSTALLED=true
 else
     CACHYOS_APPS_INSTALLED=false
-fi
-
-# Detect existing Wine installation
-if pacman -Q wine-cachyos-opt &>/dev/null || pacman -Q wine-cachyos &>/dev/null; then
-    gaming_info "✓ CachyOS Wine detected - will not install conflicting wine versions"
-    CACHYOS_WINE_INSTALLED=true
-else
-    CACHYOS_WINE_INSTALLED=false
-fi
-
-# Detect existing Proton
-if pacman -Q proton-cachyos-slr &>/dev/null || pacman -Q proton-cachyos &>/dev/null; then
-    gaming_info "✓ CachyOS Proton detected - skipping redundant proton packages"
-    CACHYOS_PROTON_INSTALLED=true
-else
-    CACHYOS_PROTON_INSTALLED=false
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -105,7 +135,7 @@ yay -Syu --noconfirm
 
 log "Installing base dotfiles configuration..."
 chmod +x install.sh
-./install.sh --kitty --nvim --fastfetch --zathura --zshrc --aur-helper=paru
+./install.sh --kitty --nvim --fastfetch --aur-helper=paru
 
 log "Installing essential desktop packages..."
 sudo pacman -S --needed --noconfirm \
@@ -119,45 +149,57 @@ yay -S --noconfirm --needed \
     microsoft-edge-stable-bin github-desktop vesktop-bin
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  🎮 SAFE GAMING OPTIMIZATIONS (No Conflicts)
+#  🎮 NVIDIA DRIVER INSTALLATION (SMART)
 # ═══════════════════════════════════════════════════════════════════════════
 
-gaming_info "Starting safe gaming optimizations..."
+if [ "$INSTALL_CACHYOS_NVIDIA" = true ]; then
+    gaming_info "Installing CachyOS NVIDIA kernel..."
+    
+    # Detect current kernel
+    CURRENT_KERNEL=$(uname -r | cut -d'-' -f1-2)
+    
+    if [[ "$CURRENT_KERNEL" == *"lts"* ]]; then
+        gaming_info "LTS kernel detected, installing LTS NVIDIA module..."
+        sudo pacman -S --needed --noconfirm linux-cachyos-lts-nvidia-open
+    else
+        gaming_info "Standard kernel detected, installing NVIDIA module..."
+        sudo pacman -S --needed --noconfirm linux-cachyos-nvidia-open
+    fi
+    
+    NEED_NVIDIA_UTILS=true
+    
+elif [ "$INSTALL_NVIDIA_DKMS" = true ]; then
+    gaming_info "Installing standard nvidia-dkms..."
+    sudo pacman -S --needed --noconfirm nvidia-dkms
+    NEED_NVIDIA_UTILS=true
+fi
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. NVIDIA DRIVERS (CachyOS doesn't include these by default)
-# ─────────────────────────────────────────────────────────────────────────────
-gaming_info "Installing NVIDIA drivers..."
-sudo pacman -S --needed --noconfirm \
-    linux-headers linux-lts-headers
-
-sudo pacman -S --needed --noconfirm \
-    nvidia-dkms nvidia-utils lib32-nvidia-utils \
-    nvidia-settings opencl-nvidia lib32-opencl-nvidia \
-    libva-nvidia-driver
-
-# Enable NVIDIA services
-sudo systemctl enable nvidia-suspend.service
-sudo systemctl enable nvidia-hibernate.service
-sudo systemctl enable nvidia-resume.service
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. ADDITIONAL TOOLS (Not included in cachyos-gaming-*)
-# ─────────────────────────────────────────────────────────────────────────────
-gaming_info "Installing additional gaming tools (not in CachyOS meta packages)..."
-
-# These are NOT in cachyos-gaming-meta or cachyos-gaming-applications
-ADDITIONAL_TOOLS=""
-
-# Only install if not already present via cachyos packages
-if [ "$CACHYOS_GAMING_INSTALLED" = false ]; then
-    # Install gamemode if not present
-    if ! pacman -Q gamemode &>/dev/null; then
-        ADDITIONAL_TOOLS="$ADDITIONAL_TOOLS gamemode lib32-gamemode"
+# Install NVIDIA userspace utilities (safe - no conflicts)
+if [ "$NEED_NVIDIA_UTILS" = true ]; then
+    gaming_info "Installing NVIDIA utilities..."
+    
+    sudo pacman -S --needed --noconfirm \
+        nvidia-utils lib32-nvidia-utils \
+        nvidia-settings \
+        opencl-nvidia lib32-opencl-nvidia \
+        libva-nvidia-driver
+    
+    # Enable NVIDIA services (if available)
+    if [ -f /usr/lib/systemd/system/nvidia-suspend.service ]; then
+        sudo systemctl enable nvidia-suspend.service
+        sudo systemctl enable nvidia-hibernate.service
+        sudo systemctl enable nvidia-resume.service
+        gaming_info "✓ NVIDIA power management services enabled"
     fi
 fi
 
-# Install supplementary tools (safe, not in CachyOS meta)
+# ═══════════════════════════════════════════════════════════════════════════
+#  🎮 SAFE GAMING OPTIMIZATIONS (No Conflicts)
+# ═══════════════════════════════════════════════════════════════════════════
+
+gaming_info "Installing additional gaming tools..."
+
+# Install only supplementary tools (not in CachyOS packages)
 yay -S --noconfirm --needed \
     bottles \
     protonup-qt \
@@ -166,130 +208,144 @@ yay -S --noconfirm --needed \
     obs-studio
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3. PERFORMANCE OPTIMIZATION TOOLS
+# PERFORMANCE OPTIMIZATION TOOLS
 # ─────────────────────────────────────────────────────────────────────────────
-gaming_info "Installing performance monitoring tools..."
+gaming_info "Installing performance tools..."
 
-# CoreCtrl for AMD CPU/APU control (safe for Ryzen)
 sudo pacman -S --needed --noconfirm corectrl
 
-# Optional: Install ananicy-cpp for process priority management
+# Ananicy-CPP for process priority management
 yay -S --noconfirm --needed ananicy-cpp
-sudo systemctl enable --now ananicy-cpp
+sudo systemctl enable --now ananicy-cpp 2>/dev/null || true
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. KERNEL PARAMETERS (Safe additions to GRUB)
+# KERNEL PARAMETERS
 # ─────────────────────────────────────────────────────────────────────────────
 gaming_info "Configuring kernel parameters..."
 
 GRUB_FILE="/etc/default/grub"
 GRUB_MODIFIED=false
 
-# Check and add NVIDIA parameters
-if ! grep -q "nvidia_drm.modeset=1" "$GRUB_FILE"; then
-    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia_drm.modeset=1 nvidia.NVreg_PreserveVideoMemoryAllocations=1 /' "$GRUB_FILE"
+# NVIDIA DRM modeset (safe for both dkms and CachyOS kernel)
+if ! grep -q "nvidia_drm.modeset=1" "$GRUB_FILE" 2>/dev/null; then
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia_drm.modeset=1 /' "$GRUB_FILE"
     GRUB_MODIFIED=true
-    gaming_info "Added NVIDIA kernel parameters"
+    gaming_info "Added nvidia_drm.modeset=1"
 fi
 
-# Check and add AMD CPU parameters (if not present)
-if ! grep -q "amd_pstate" "$GRUB_FILE"; then
+# NVIDIA video memory preservation
+if ! grep -q "nvidia.NVreg_PreserveVideoMemoryAllocations=1" "$GRUB_FILE" 2>/dev/null; then
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia.NVreg_PreserveVideoMemoryAllocations=1 /' "$GRUB_FILE"
+    GRUB_MODIFIED=true
+    gaming_info "Added video memory preservation"
+fi
+
+# AMD P-State (safe for Ryzen)
+if ! grep -q "amd_pstate" "$GRUB_FILE" 2>/dev/null; then
     sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="amd_pstate=active /' "$GRUB_FILE"
     GRUB_MODIFIED=true
-    gaming_info "Added AMD P-State driver parameter"
+    gaming_info "Added AMD P-State driver"
 fi
 
-# Optional: Performance mitigation (user choice)
+# Optional: Performance vs Security
 echo ""
-echo -e "${YELLOW}⚠️  PERFORMANCE vs SECURITY CHOICE:${NC}"
-echo -e "Adding ${CYAN}mitigations=off${NC} can increase gaming performance by 5-10%"
-echo -e "but reduces security against Spectre/Meltdown attacks."
+echo -e "${YELLOW}⚠️  OPTIONAL: Performance Optimization${NC}"
+echo -e "Adding ${CYAN}mitigations=off${NC} can increase FPS by 5-10%"
+echo -e "but reduces security against CPU vulnerabilities."
 echo ""
-read -p "Add mitigations=off for better gaming performance? (y/N): " -n 1 -r
+read -p "Enable mitigations=off? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    if ! grep -q "mitigations=off" "$GRUB_FILE"; then
+    if ! grep -q "mitigations=off" "$GRUB_FILE" 2>/dev/null; then
         sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="mitigations=off /' "$GRUB_FILE"
         GRUB_MODIFIED=true
-        gaming_info "Added mitigations=off for performance"
+        gaming_info "Added mitigations=off"
     fi
 else
-    gaming_info "Skipped mitigations=off (keeping system secure)"
+    gaming_info "Keeping mitigations enabled (secure)"
 fi
 
-# Rebuild GRUB config if modified
+# Rebuild GRUB if modified
 if [ "$GRUB_MODIFIED" = true ]; then
     sudo grub-mkconfig -o /boot/grub/grub.cfg
     gaming_info "GRUB configuration updated"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5. SYSCTL OPTIMIZATIONS (Safe network & memory tuning)
+# SYSCTL OPTIMIZATIONS
 # ─────────────────────────────────────────────────────────────────────────────
 gaming_info "Configuring system parameters..."
 
 sudo tee /etc/sysctl.d/99-gaming.conf > /dev/null << 'SYSCTL'
-# Network optimizations for gaming
+# Network optimizations for gaming (reduce latency)
 net.core.netdev_max_backlog = 16384
 net.core.somaxconn = 8192
 net.ipv4.tcp_fastopen = 3
 net.ipv4.tcp_congestion_control = bbr
 
-# Memory optimizations (32GB RAM)
+# Memory optimizations (32GB RAM system)
 vm.swappiness = 10
 vm.vfs_cache_pressure = 50
 vm.dirty_ratio = 10
 vm.dirty_background_ratio = 5
 
-# File system
+# File system limits
 fs.file-max = 2097152
 fs.inotify.max_user_watches = 524288
 SYSCTL
 
-sudo sysctl -p /etc/sysctl.d/99-gaming.conf
+sudo sysctl -p /etc/sysctl.d/99-gaming.conf 2>/dev/null || true
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6. I/O SCHEDULER (Safe for all storage types)
+# I/O SCHEDULER OPTIMIZATION
 # ─────────────────────────────────────────────────────────────────────────────
 gaming_info "Optimizing I/O schedulers..."
 
 sudo tee /etc/udev/rules.d/60-ioschedulers.rules > /dev/null << 'UDEV'
-# NVMe: none scheduler for best performance
+# NVMe: none scheduler (best for NVMe drives)
 ACTION=="add|change", KERNEL=="nvme[0-9]n[0-9]", ATTR{queue/scheduler}="none"
+
 # SSD: mq-deadline
 ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
-# HDD: bfq
+
+# HDD: bfq (if you have any)
 ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
 UDEV
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 7. NVIDIA MODULE CONFIGURATION (Wayland/Hyprland specific)
+# NVIDIA MODULE CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────────────
-gaming_info "Configuring NVIDIA modules for Hyprland..."
-
-sudo tee /etc/modules-load.d/nvidia.conf > /dev/null << 'NVMODULES'
+if [ "$NEED_NVIDIA_UTILS" = true ]; then
+    gaming_info "Configuring NVIDIA modules..."
+    
+    # Only for standard nvidia-dkms, CachyOS kernel handles this differently
+    if [ "$INSTALL_NVIDIA_DKMS" = true ]; then
+        sudo tee /etc/modules-load.d/nvidia.conf > /dev/null << 'NVMODULES'
 nvidia
 nvidia_modeset
 nvidia_uvm
 nvidia_drm
 NVMODULES
-
-sudo tee /etc/modprobe.d/nvidia.conf > /dev/null << 'NVMODPROBE'
+    fi
+    
+    # Modprobe settings (works for both)
+    sudo tee /etc/modprobe.d/nvidia.conf > /dev/null << 'NVMODPROBE'
 options nvidia_drm modeset=1
 options nvidia NVreg_PreserveVideoMemoryAllocations=1
 options nvidia NVreg_TemporaryFilePath=/var/tmp
 NVMODPROBE
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 8. HYPRLAND ENVIRONMENT (NVIDIA + Gaming specific)
+# HYPRLAND ENVIRONMENT (NVIDIA + Gaming)
 # ─────────────────────────────────────────────────────────────────────────────
-gaming_info "Creating Hyprland gaming environment configuration..."
+gaming_info "Creating Hyprland gaming environment..."
 
 mkdir -p ~/.config/hypr
 
 cat > ~/.config/hypr/gaming-env.conf << 'HYPRENV'
 # ═══════════════════════════════════════════════════════════════════════════
-#  NVIDIA Configuration for Hyprland
+#  NVIDIA Configuration for Hyprland/Wayland
 # ═══════════════════════════════════════════════════════════════════════════
 env = LIBVA_DRIVER_NAME,nvidia
 env = XDG_SESSION_TYPE,wayland
@@ -302,44 +358,41 @@ env = __GL_GSYNC_ALLOWED,1
 env = __GL_VRR_ALLOWED,1
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  Gaming Optimizations (works with CachyOS wine/proton)
+#  Gaming Optimizations (Compatible with CachyOS Wine/Proton)
 # ═══════════════════════════════════════════════════════════════════════════
-# NVIDIA features for Proton
+# NVIDIA features
 env = PROTON_ENABLE_NVAPI,1
 env = PROTON_ENABLE_NGX_UPDATER,1
 
 # DXVK optimizations
 env = DXVK_ASYNC,1
 
-# AMD FSR upscaling support
+# FSR upscaling
 env = WINE_FULLSCREEN_FSR,1
 
-# MangoHud (if you want it always on)
+# Uncomment to always show MangoHud
 # env = MANGOHUD,1
 HYPRENV
 
-# Add source to main Hyprland config if not already present
+# Add to Hyprland config
 HYPR_CONF="$HOME/.config/hypr/hyprland.conf"
 if [ -f "$HYPR_CONF" ]; then
     if ! grep -q "gaming-env.conf" "$HYPR_CONF"; then
         echo "source = ~/.config/hypr/gaming-env.conf" >> "$HYPR_CONF"
-        gaming_info "Added gaming-env.conf to Hyprland config"
-    else
-        gaming_info "gaming-env.conf already sourced in Hyprland"
+        gaming_info "✓ Added gaming-env.conf to Hyprland"
     fi
 else
-    warning "Hyprland config not found at $HYPR_CONF"
-    gaming_info "You'll need to manually source gaming-env.conf"
+    warning "Hyprland config not found - source gaming-env.conf manually"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 9. MANGOHUD CONFIGURATION (Works with CachyOS version)
+# MANGOHUD CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────────────
 gaming_info "Configuring MangoHud..."
 
 mkdir -p ~/.config/MangoHud
 cat > ~/.config/MangoHud/MangoHud.conf << 'MANGOHUD'
-# Performance Display
+# Display
 fps
 frametime=0
 frame_timing=1
@@ -350,7 +403,7 @@ cpu_temp
 ram
 vram
 
-# Position & Style
+# Style
 position=top-left
 font_size=24
 background_alpha=0.4
@@ -367,7 +420,7 @@ MANGOHUD
 mkdir -p ~/mangohud_logs
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 10. GAMEMODE CONFIGURATION (If installed)
+# GAMEMODE CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────────────
 if command -v gamemoded &>/dev/null; then
     gaming_info "Configuring GameMode..."
@@ -382,15 +435,13 @@ apply_gpu_optimisations=accept
 gpu_device=0
 
 [custom]
-start=notify-send "GameMode Activated" "Performance mode enabled"
-end=notify-send "GameMode Deactivated" "Normal mode restored"
+start=notify-send "GameMode" "Performance mode enabled"
+end=notify-send "GameMode" "Normal mode restored"
 GAMEMODE
-else
-    gaming_info "GameMode not detected (may be included in cachyos-gaming-meta)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 11. SYSTEM LIMITS
+# SYSTEM LIMITS
 # ─────────────────────────────────────────────────────────────────────────────
 gaming_info "Configuring system limits..."
 
@@ -400,18 +451,18 @@ sudo tee /etc/security/limits.d/99-gaming.conf > /dev/null << 'LIMITS'
 LIMITS
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 12. SHADER CACHE DIRECTORIES
+# SHADER CACHE DIRECTORIES
 # ─────────────────────────────────────────────────────────────────────────────
-gaming_info "Setting up shader cache directories..."
+gaming_info "Setting up shader cache..."
 
 mkdir -p ~/.cache/mesa_shader_cache
 mkdir -p ~/.cache/nvidia/GLCache
 mkdir -p ~/.local/share/Steam/steamapps/shadercache
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 13. GAMING MODE TOGGLE SCRIPT
+# GAMING MODE TOGGLE SCRIPT
 # ─────────────────────────────────────────────────────────────────────────────
-gaming_info "Creating gaming mode toggle script..."
+gaming_info "Creating gaming mode script..."
 
 sudo tee /usr/local/bin/gaming-mode > /dev/null << 'GAMESCRIPT'
 #!/bin/bash
@@ -419,7 +470,7 @@ sudo tee /usr/local/bin/gaming-mode > /dev/null << 'GAMESCRIPT'
 if [ "$1" == "on" ]; then
     echo "🎮 Activating Gaming Mode..."
     
-    # Set CPU governor to performance
+    # CPU performance governor
     if [ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
         echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null
         echo "✓ CPU governor: performance"
@@ -428,16 +479,16 @@ if [ "$1" == "on" ]; then
     # Stop non-essential services
     sudo systemctl stop bluetooth.service 2>/dev/null && echo "✓ Bluetooth stopped"
     
-    # Clear system cache
+    # Clear cache
     sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
-    echo "✓ System cache cleared"
+    echo "✓ Cache cleared"
     
-    notify-send "Gaming Mode" "Performance optimizations activated" -u normal
+    notify-send "Gaming Mode" "Performance optimizations active" -u normal
     
 elif [ "$1" == "off" ]; then
     echo "🔧 Deactivating Gaming Mode..."
     
-    # Set CPU governor back to schedutil
+    # Restore governor
     if [ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
         echo schedutil | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null
         echo "✓ CPU governor: schedutil"
@@ -449,73 +500,35 @@ elif [ "$1" == "off" ]; then
     notify-send "Gaming Mode" "Normal mode restored" -u normal
 else
     echo "Usage: gaming-mode [on|off]"
-    echo ""
-    echo "Examples:"
-    echo "  gaming-mode on   - Enable performance mode"
-    echo "  gaming-mode off  - Return to normal mode"
 fi
 GAMESCRIPT
 
 sudo chmod +x /usr/local/bin/gaming-mode
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 14. STEAM LAUNCH OPTIONS GUIDE
+# STEAM LAUNCH OPTIONS GUIDE
 # ─────────────────────────────────────────────────────────────────────────────
-gaming_info "Creating Steam launch options guide..."
-
 cat > ~/steam-launch-options.txt << 'STEAM'
 ═══════════════════════════════════════════════════════════════════════════
-  STEAM LAUNCH OPTIONS GUIDE
-  Compatible with CachyOS Wine/Proton
+  STEAM LAUNCH OPTIONS - CachyOS Compatible
 ═══════════════════════════════════════════════════════════════════════════
 
-BASIC TEMPLATES:
-───────────────
+BASIC:
+  Native Linux: mangohud %command%
+  Proton games: PROTON_ENABLE_NVAPI=1 DXVK_ASYNC=1 mangohud %command%
+  With GameMode: gamemoderun mangohud %command%
 
-Native Linux games:
-    mangohud %command%
-
-Proton games (Windows):
-    PROTON_ENABLE_NVAPI=1 DXVK_ASYNC=1 mangohud %command%
-
-With GameMode:
-    gamemoderun mangohud %command%
-
-
-HIGH REFRESH RATE:
-──────────────────
-
-For 144Hz+ monitors:
-    DXVK_FRAME_RATE=144 mangohud %command%
-
-Unlimited FPS:
-    DXVK_FRAME_RATE=0 mangohud %command%
-
+HIGH REFRESH:
+  144Hz: DXVK_FRAME_RATE=144 mangohud %command%
+  Unlimited: DXVK_FRAME_RATE=0 mangohud %command%
 
 FSR UPSCALING:
-──────────────
+  WINE_FULLSCREEN_FSR=1 WINE_FULLSCREEN_FSR_STRENGTH=2 mangohud %command%
 
-Enable FSR with strength (0-5, lower = sharper):
-    WINE_FULLSCREEN_FSR=1 WINE_FULLSCREEN_FSR_STRENGTH=2 mangohud %command%
+RECOMMENDED:
+  PROTON_ENABLE_NVAPI=1 DXVK_ASYNC=1 gamemoderun mangohud %command%
 
-
-COMBINED (Recommended):
-───────────────────────
-
-Full optimization:
-    PROTON_ENABLE_NVAPI=1 DXVK_ASYNC=1 gamemoderun mangohud %command%
-
-With FSR:
-    WINE_FULLSCREEN_FSR=1 PROTON_ENABLE_NVAPI=1 DXVK_ASYNC=1 gamemoderun mangohud %command%
-
-
-NOTES:
-──────
-- CachyOS already uses optimized Wine/Proton versions
-- No need to force wine-staging or other wine versions
-- GameMode works automatically with CachyOS gaming packages
-- MangoHud toggle in-game: Shift+F12
-
+NOTE: CachyOS uses optimized Wine/Proton. Don't force other versions.
 ═══════════════════════════════════════════════════════════════════════════
 STEAM
 
@@ -526,62 +539,50 @@ STEAM
 log "Installation completed successfully!"
 echo ""
 gaming_info "═══════════════════════════════════════════════════════════════"
-gaming_info "  ✅ SAFE GAMING OPTIMIZATIONS APPLIED"
+gaming_info "  ✅ CACHYOS-COMPATIBLE GAMING SETUP COMPLETE"
 gaming_info "═══════════════════════════════════════════════════════════════"
 echo ""
 echo -e "${GREEN}Installed/Configured:${NC}"
 echo ""
-echo -e "  ${GREEN}✓${NC} NVIDIA drivers with Wayland/Hyprland support"
-echo -e "  ${GREEN}✓${NC} CachyOS gaming packages (preserved existing)"
-echo -e "  ${GREEN}✓${NC} Additional tools: Bottles, ProtonUp-Qt, GWE, OBS"
-echo -e "  ${GREEN}✓${NC} Performance optimizations: sysctl, I/O schedulers"
-echo -e "  ${GREEN}✓${NC} MangoHud & GameMode configurations"
-echo -e "  ${GREEN}✓${NC} Hyprland gaming environment variables"
+
+if [ "$INSTALL_CACHYOS_NVIDIA" = true ]; then
+    echo -e "  ${GREEN}✓${NC} CachyOS NVIDIA kernel module"
+elif [ "$INSTALL_NVIDIA_DKMS" = true ]; then
+    echo -e "  ${GREEN}✓${NC} Standard NVIDIA dkms driver"
+elif [ "$NEED_NVIDIA_UTILS" = true ]; then
+    echo -e "  ${GREEN}✓${NC} NVIDIA utilities (kernel already present)"
+fi
+
+echo -e "  ${GREEN}✓${NC} Gaming tools: Bottles, ProtonUp-Qt, GWE, OBS"
+echo -e "  ${GREEN}✓${NC} Performance: CoreCtrl, Ananicy-CPP"
+echo -e "  ${GREEN}✓${NC} System optimizations: sysctl, I/O, limits"
+echo -e "  ${GREEN}✓${NC} Hyprland gaming environment"
+echo -e "  ${GREEN}✓${NC} MangoHud & GameMode configs"
 echo -e "  ${GREEN}✓${NC} Gaming mode toggle script"
-echo ""
-echo -e "${CYAN}What was SKIPPED (to avoid conflicts):${NC}"
-echo ""
-if [ "$CACHYOS_GAMING_INSTALLED" = true ]; then
-    echo -e "  ${YELLOW}⊘${NC} Duplicate gaming libraries (already in cachyos-gaming-meta)"
-fi
-if [ "$CACHYOS_APPS_INSTALLED" = true ]; then
-    echo -e "  ${YELLOW}⊘${NC} Duplicate launchers (already in cachyos-gaming-applications)"
-fi
-if [ "$CACHYOS_WINE_INSTALLED" = true ]; then
-    echo -e "  ${YELLOW}⊘${NC} Alternative Wine versions (using CachyOS optimized Wine)"
-fi
-if [ "$CACHYOS_PROTON_INSTALLED" = true ]; then
-    echo -e "  ${YELLOW}⊘${NC} Alternative Proton versions (using CachyOS Proton)"
-fi
 echo ""
 echo -e "${YELLOW}📝 IMPORTANT NEXT STEPS:${NC}"
 echo ""
-echo -e "  1. ${CYAN}REBOOT REQUIRED${NC} for all changes to take effect"
-echo -e "  2. After reboot, enable gaming mode: ${CYAN}gaming-mode on${NC}"
-echo -e "  3. Configure CoreCtrl for GPU management"
+echo -e "  1. ${CYAN}REBOOT REQUIRED${NC} to apply all changes"
+echo -e "  2. After reboot: ${CYAN}gaming-mode on${NC}"
+echo -e "  3. Configure CoreCtrl"
 echo -e "  4. Test MangoHud: ${CYAN}mangohud glxgears${NC}"
-echo -e "  5. Steam launch options saved to: ${CYAN}~/steam-launch-options.txt${NC}"
-echo -e "  6. Install Proton-GE via: ${CYAN}protonup-qt${NC}"
+echo -e "  5. Install Proton-GE: ${CYAN}protonup-qt${NC}"
 echo ""
-echo -e "${YELLOW}🎯 USEFUL COMMANDS:${NC}"
+echo -e "${YELLOW}🎯 QUICK COMMANDS:${NC}"
 echo ""
-echo -e "  ${CYAN}gaming-mode on/off${NC}     - Toggle performance mode"
-echo -e "  ${CYAN}nvidia-smi${NC}             - Check GPU status"
-echo -e "  ${CYAN}corectrl${NC}               - Open GPU control panel"
-echo -e "  ${CYAN}mangohud glxgears${NC}      - Test overlay"
+echo -e "  ${CYAN}gaming-mode on/off${NC}  - Toggle performance"
+echo -e "  ${CYAN}nvidia-smi${NC}          - Check GPU"
+echo -e "  ${CYAN}corectrl${NC}            - GPU control"
 echo ""
 gaming_info "═══════════════════════════════════════════════════════════════"
 echo ""
-log "Log file saved to: $LOG_FILE"
-echo ""
+log "Log saved: $LOG_FILE"
 
 # Prompt for reboot
-read -p "Do you want to reboot now to apply all changes? (y/N): " -n 1 -r
+read -p "Reboot now to apply changes? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    log "Rebooting system..."
     sudo reboot
 else
-    warning "Please reboot your system manually to apply all changes."
-    echo -e "${YELLOW}Run:${NC} ${CYAN}sudo reboot${NC}"
+    warning "Please reboot manually: sudo reboot"
 fi
