@@ -37,16 +37,20 @@ creative_info() { echo -e "${CYAN}[CREATIVE]${NC} $1" | tee -a "$LOG_FILE"; }
 clear
 echo -e "${GREEN}"
 cat << "EOF"
-╭───────────────────────────────────────────────────────────────────╮
-│         ______           __          __  _                        │
-│        / ____/___ ____  / /__  _____/ /_(_)___ _                  │
-│       / /   / __ `/ _ \/ / _ \/ ___/ __/ / __ `/                  │
-│      / /___/ /_/ /  __/ /  __(__  ) /_/ / /_/ /                   │
-│      \____/\__,_/\___/_/\___/____/\__/_/\__,_/                    │
-│                                                                   │
-│   COMPLETE INSTALLER - All Features Included                      │
-│   ROG STRIX B550-XE │ Ryzen 7 5800X │ RTX 3060 12GB               │
-╰───────────────────────────────────────────────────────────────────╯
+╭────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ▀████    ███                                                 ▀█████████▄             █         │
+│   ███    ███                 ▀▀▀▀                              ███    ███          █           │
+│   ███    ███    ▄██████▄  ▀███████▄  ▀████████▄   ▄██████▄     ███    ███ ███   ███▀ ▄██████▄  │
+│  ▄███▄▄▄▄███▄▄ ███    ███       ▀███  ███    ███ ███    ███   ▄███▄▄▄ ███ ███   ███ ███    ███ │
+│ ▀▀███▀▀▀▀███▀  ███    ███  ▄████████  ███    ███ ███    ███  ▀▀███▀▀▀ ███ ███   ███ ███        │
+│   ███    ███   ███    ███ ███    ███  ███    ███ ███    ███    ███    ███ ███   ███ ███        │
+│   ███    ███   ███    ███ ███    ███  ███    ███ ███    ███    ███    ███ ███   ███ ███    ███ │
+│   ███    ███    ▀██████▀   ▀████████▄ ███    ███  ▀████████  ▄█████████▀   ▀█████▀   ▀██████▀  │
+│                                                        ▄███                                    │
+│                                                 ▄████████▀                                     │
+│   COMPLETE INSTALLER - Safe Gaming Optimizations                                               │
+│                        ROG STRIX B550-XE │ Ryzen 7 5800X │ RTX 3060 12GB                       │
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯
 EOF
 echo -e "${NC}"
 
@@ -362,28 +366,6 @@ log "✓ Vietnamese input"
 # ===== SDDM + SUGAR CANDY =====
 log "Installing SDDM + Sugar Candy theme..."
 sudo pacman -S --needed --noconfirm sddm qt5-graphicaleffects qt5-quickcontrols2 qt5-svg
-
-sudo mkdir -p /usr/share/sddm/themes
-cd /tmp
-rm -rf sddm-sugar-candy
-git clone --depth 1 https://github.com/Kangie/sddm-sugar-candy.git 2>/dev/null || warn "Sugar Candy clone skip"
-
-if [ -d "sddm-sugar-candy" ]; then
-    sudo cp -r sddm-sugar-candy /usr/share/sddm/themes/sugar-candy
-fi
-
-sudo mkdir -p /etc/sddm.conf.d
-sudo tee /etc/sddm.conf.d/theme.conf > /dev/null <<SDDM_CONF
-[Theme]
-Current=sugar-candy
-
-[General]
-DisplayServer=wayland
-
-[Wayland]
-SessionDir=/usr/share/wayland-sessions
-SDDM_CONF
-
 sudo systemctl enable sddm.service 2>/dev/null || true
 
 log "✓ SDDM + Sugar Candy"
