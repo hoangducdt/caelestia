@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+# Exit on errors
+set -eo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -78,10 +79,13 @@ else
     echo -e "  2) Install standard nvidia-dkms"
     echo -e "  3) Skip NVIDIA installation"
     echo ""
-    read -p "Choose option (1-3): " -n 1 -r NVIDIA_CHOICE
+    
+    # Safe read with fallback
+    NVIDIA_CHOICE=""
+    read -p "Choose option (1-3): " -r NVIDIA_CHOICE || NVIDIA_CHOICE="3"
     echo ""
     
-    case $NVIDIA_CHOICE in
+    case "$NVIDIA_CHOICE" in
         1)
             gaming_info "Will install CachyOS NVIDIA kernel"
             INSTALL_CACHYOS_NVIDIA=true
@@ -91,7 +95,7 @@ else
             INSTALL_NVIDIA_DKMS=true
             ;;
         *)
-            gaming_info "Skipping NVIDIA installation"
+            gaming_info "Skipping NVIDIA installation (option: ${NVIDIA_CHOICE:-3})"
             ;;
     esac
 fi
@@ -253,9 +257,13 @@ echo -e "${YELLOW}⚠️  OPTIONAL: Performance Optimization${NC}"
 echo -e "Adding ${CYAN}mitigations=off${NC} can increase FPS by 5-10%"
 echo -e "but reduces security against CPU vulnerabilities."
 echo ""
-read -p "Enable mitigations=off? (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+
+# Safe read with fallback
+MITIGATIONS_REPLY=""
+read -p "Enable mitigations=off? (y/N): " -r MITIGATIONS_REPLY || MITIGATIONS_REPLY="N"
+echo ""
+
+if [[ "$MITIGATIONS_REPLY" =~ ^[Yy]$ ]]; then
     if ! grep -q "mitigations=off" "$GRUB_FILE" 2>/dev/null; then
         sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="mitigations=off /' "$GRUB_FILE"
         GRUB_MODIFIED=true
@@ -579,9 +587,13 @@ echo ""
 log "Log saved: $LOG_FILE"
 
 # Prompt for reboot
-read -p "Reboot now to apply changes? (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+echo ""
+REBOOT_REPLY=""
+read -p "Reboot now to apply changes? (y/N): " -r REBOOT_REPLY || REBOOT_REPLY="N"
+echo ""
+
+if [[ "$REBOOT_REPLY" =~ ^[Yy]$ ]]; then
+    log "Rebooting system..."
     sudo reboot
 else
     warning "Please reboot manually: sudo reboot"
