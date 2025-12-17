@@ -892,8 +892,6 @@ env = __GLX_VENDOR_LIBRARY_NAME,nvidia
 env = WLR_NO_HARDWARE_CURSORS,1
 
 # Vietnamese Input - Fcitx5
-env = GTK_IM_MODULE,fcitx
-env = QT_IM_MODULE,fcitx
 env = XMODIFIERS,@im=fcitx
 env = SDL_IM_MODULE,fcitx
 env = GLFW_IM_MODULE,fcitx
