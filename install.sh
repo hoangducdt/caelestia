@@ -753,6 +753,9 @@ setup_directories() {
         git clone --quiet --depth 1 https://github.com/mylinuxforwork/wallpaper.git \
             "$HOME/Pictures/Wallpapers" 2>&1 | tee -a "$LOG" || warn "Wallpapers clone failed"
     fi
+
+    install_aur_package "nautilus-open-any-terminal" 900
+    gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal foot
     
     mark_completed "directories"
     log "✓ Directories created"
