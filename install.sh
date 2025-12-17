@@ -773,6 +773,13 @@ setup_directories() {
     install_aur_package "nautilus-open-any-terminal" 900
     gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal kitty
 
+    mkdir -p "$HOME/.config/fastfetch/logo"
+    curl -L -o "$HOME/.face.png" https://raw.githubusercontent.com/hoangducdt/caelestia/main/.face.png
+    curl -L -o "$HOME/.config/fastfetch/logo/aisaka.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/aisaka.icon
+    curl -L -o "$HOME/.config/fastfetch/logo/hyprland.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/hyprland.icon
+    curl -L -o "$HOME/.config/fastfetch/logo/loli.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/loli.icon
+    
+
     # Thêm bookmarks vào Nautilus
     cat >> ~/.config/gtk-3.0/bookmarks <<EOF
 file://$HOME/Downloads
