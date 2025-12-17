@@ -861,22 +861,87 @@ SYSCTL
 monitor=DP-1,2560x1080@99.94,0x0,1.0
 monitor=DP-3,1920x1080@74.97,2560x0,1.0
 MONITORS
+    
+    local hypr_conf="$HOME/.config/hypr/hyprland.conf"
+    
+    if [ -f "$hypr_conf" ]; then
+        if ! grep -q 'source = $hl/monitors.conf' "$hypr_conf"; then
+            echo 'source = $hl/monitors.conf' >> "$hypr_conf"
+            log "Added monitors.conf source to hyprland.conf"
+        fi
+    else
+        warn "hyprland.conf not found at $hypr_conf"
+    fi
 
-    # Hypr variables configuration
-    mkdir -p "$HOME/.config/hypr"
-    cat > "$HOME/.config/hypr/variables.conf" <<'VARIABLES'
-$browser = microsoft-edge-stable-bin
-$editor = code
-$fileExplorer = nautilus
-VARIABLES
+    # Hypr variables configuration - modify existing values
+    local hypr_vars="$HOME/.config/hypr/variables.conf"
+    if [ -f "$hypr_vars" ]; then
+        log "Updating Hyprland variables..."
+        backup_file "$hypr_vars"
+        
+        # Update browser
+        if grep -q '^\$browser' "$hypr_vars"; then
+            sed -i 's|^\$browser.*|$browser = microsoft-edge-stable-bin|' "$hypr_vars"
+        else
+            echo '$browser = microsoft-edge-stable-bin' >> "$hypr_vars"
+        fi
+        
+        # Update editor
+        if grep -q '^\$editor' "$hypr_vars"; then
+            sed -i 's|^\$editor.*|$editor = code|' "$hypr_vars"
+        else
+            echo '$editor = code' >> "$hypr_vars"
+        fi
+        
+        # Update fileExplorer
+        if grep -q '^\$fileExplorer' "$hypr_vars"; then
+            sed -i 's|^\$fileExplorer.*|$fileExplorer = nautilus|' "$hypr_vars"
+        else
+            echo '$fileExplorer = nautilus' >> "$hypr_vars"
+        fi
+        
+        log "✓ Updated Hyprland variables"
+    else
+        warn "Hyprland variables.conf not found at $hypr_vars"
+    fi
 
-    # DNS configuration
-    sudo tee /etc/systemd/resolved.conf > /dev/null <<'RESOLVED'
-[Resolve]
-DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com
-FallbackDNS=9.9.9.9#dns.quad9.net 2620:fe::9#dns.quad9.net 1.1.1.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 8.8.8.8#dns.google 2001:4860:4860::8888#dns.google
-DNSOverTLS=yes
-RESOLVED
+    # DNS configuration - modify existing values in resolved.conf
+    local resolved_conf="/etc/systemd/resolved.conf"
+    if [ -f "$resolved_conf" ]; then
+        log "Updating DNS configuration..."
+        backup_file "$resolved_conf"
+        
+        # Update or add DNS
+        if sudo grep -q '^DNS=' "$resolved_conf"; then
+            sudo sed -i 's|^DNS=.*|DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com|' "$resolved_conf"
+        elif sudo grep -q '^#DNS=' "$resolved_conf"; then
+            sudo sed -i 's|^#DNS=.*|DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com|' "$resolved_conf"
+        else
+            echo "DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com" | sudo tee -a "$resolved_conf" >/dev/null
+        fi
+        
+        # Update or add FallbackDNS
+        if sudo grep -q '^FallbackDNS=' "$resolved_conf"; then
+            sudo sed -i 's|^FallbackDNS=.*|FallbackDNS=9.9.9.9#dns.quad9.net 2620:fe::9#dns.quad9.net 1.1.1.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 8.8.8.8#dns.google 2001:4860:4860::8888#dns.google|' "$resolved_conf"
+        elif sudo grep -q '^#FallbackDNS=' "$resolved_conf"; then
+            sudo sed -i 's|^#FallbackDNS=.*|FallbackDNS=9.9.9.9#dns.quad9.net 2620:fe::9#dns.quad9.net 1.1.1.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 8.8.8.8#dns.google 2001:4860:4860::8888#dns.google|' "$resolved_conf"
+        else
+            echo "FallbackDNS=9.9.9.9#dns.quad9.net 2620:fe::9#dns.quad9.net 1.1.1.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 8.8.8.8#dns.google 2001:4860:4860::8888#dns.google" | sudo tee -a "$resolved_conf" >/dev/null
+        fi
+        
+        # Update or add DNSOverTLS
+        if sudo grep -q '^DNSOverTLS=' "$resolved_conf"; then
+            sudo sed -i 's|^DNSOverTLS=.*|DNSOverTLS=yes|' "$resolved_conf"
+        elif sudo grep -q '^#DNSOverTLS=' "$resolved_conf"; then
+            sudo sed -i 's|^#DNSOverTLS=.*|DNSOverTLS=yes|' "$resolved_conf"
+        else
+            echo "DNSOverTLS=yes" | sudo tee -a "$resolved_conf" >/dev/null
+        fi
+        
+        log "✓ Updated DNS configuration"
+    else
+        warn "systemd resolved.conf not found at $resolved_conf"
+    fi
 
     # Restart systemd-resolved to apply DNS changes
     sudo systemctl restart systemd-resolved.service 2>/dev/null || warn "Failed to restart systemd-resolved"
@@ -921,18 +986,6 @@ STATIC_IP
         warn "Could not detect primary network interface for static IP configuration"
     fi
     
-    # Add source to hyprland.conf if not exists
-    local hypr_conf="$HOME/.config/hypr/hyprland.conf"
-    
-    if [ -f "$hypr_conf" ]; then
-        if ! grep -q 'source = $hl/monitors.conf' "$hypr_conf"; then
-            echo 'source = $hl/monitors.conf' >> "$hypr_conf"
-            log "Added monitors.conf source to hyprland.conf"
-        fi
-    else
-        warn "hyprland.conf not found at $hypr_conf"
-    fi
-
     # Add theme config
     sudo mkdir -p /etc/sddm.conf.d
     sudo tee /etc/sddm.conf.d/theme.conf > /dev/null <<SDDM_CONF
