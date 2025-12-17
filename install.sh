@@ -1026,8 +1026,8 @@ FCITX
             echo "exec-once = fcitx5 -d" >> "$HOME/.config/hypr/hyprland/execs.conf"
         grep -q "steam" "$HOME/.config/hypr/hyprland/execs.conf" || \
             echo "exec-once = steam -d" >> "$HOME/.config/hypr/hyprland/execs.conf"
-        grep -q "vesktop-bin" "$HOME/.config/hypr/hyprland/execs.conf" || \
-            echo "exec-once = vesktop-bin -d" >> "$HOME/.config/hypr/hyprland/execs.conf"
+        grep -q "vesktop" "$HOME/.config/hypr/hyprland/execs.conf" || \
+            echo "exec-once = vesktop -d" >> "$HOME/.config/hypr/hyprland/execs.conf"
     fi
     
     # Configure VRR
