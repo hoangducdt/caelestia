@@ -713,20 +713,14 @@ setup_sddm() {
         "sddm" "qt5-graphicaleffects" "qt5-quickcontrols2" "qt5-svg" "uwsm"
     
     sudo mkdir -p /usr/share/sddm/themes
-cd /tmp
-rm -rf sddm-sugar-candy
-git clone --depth 1 https://github.com/Kangie/sddm-sugar-candy.git 2>/dev/null || warn "Sugar Candy clone skip"
+    cd /tmp
+    rm -rf sddm-sugar-candy
+    git clone --depth 1 https://github.com/Kangie/sddm-sugar-candy.git 2>/dev/null || warn "Sugar Candy clone skip"
 
-if [ -d "sddm-sugar-candy" ]; then
-    sudo cp -r sddm-sugar-candy /usr/share/sddm/themes/sugar-candy
-fi
+    if [ -d "sddm-sugar-candy" ]; then
+        sudo cp -r sddm-sugar-candy /usr/share/sddm/themes/sugar-candy
+    fi
 
-sudo mkdir -p /etc/sddm.conf.d
-sudo tee /etc/sddm.conf.d/theme.conf > /dev/null <<SDDM_CONF
-[Theme]
-Current=sugar-candy
-SDDM_CONF
-    
     sudo systemctl enable sddm.service 2>/dev/null || true
     
     mark_completed "sddm"
@@ -867,6 +861,65 @@ SYSCTL
 monitor=DP-1,2560x1080@99.94,0x0,1.0
 monitor=DP-3,1920x1080@74.97,2560x0,1.0
 MONITORS
+
+    # Hypr variables configuration
+    mkdir -p "$HOME/.config/hypr"
+    cat > "$HOME/.config/hypr/variables.conf" <<'VARIABLES'
+$browser = microsoft-edge-stable-bin
+$editor = code
+$fileExplorer = nautilus
+VARIABLES
+
+    # DNS configuration
+    sudo tee /etc/systemd/resolved.conf > /dev/null <<'RESOLVED'
+[Resolve]
+DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com
+FallbackDNS=9.9.9.9#dns.quad9.net 2620:fe::9#dns.quad9.net 1.1.1.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 8.8.8.8#dns.google 2001:4860:4860::8888#dns.google
+DNSOverTLS=yes
+RESOLVED
+
+    # Restart systemd-resolved to apply DNS changes
+    sudo systemctl restart systemd-resolved.service 2>/dev/null || warn "Failed to restart systemd-resolved"
+
+    # Static IP configuration
+    log "Configuring static IP address..."
+    
+    # Get the primary network interface
+    local primary_interface=$(ip route | grep default | awk '{print $5}' | head -n1)
+    
+    if [ -n "$primary_interface" ]; then
+        log "Detected primary interface: $primary_interface"
+        
+        # Create NetworkManager connection profile for static IP
+        sudo tee /etc/NetworkManager/system-connections/static-ethernet.nmconnection > /dev/null <<STATIC_IP
+[connection]
+id=static-ethernet
+type=ethernet
+interface-name=$primary_interface
+autoconnect=true
+
+[ipv4]
+method=manual
+address1=192.168.1.2/24,192.168.1.1
+dns=1.1.1.1;1.0.0.1;
+dns-search=
+
+[ipv6]
+method=auto
+
+[proxy]
+STATIC_IP
+        
+        # Set correct permissions
+        sudo chmod 600 /etc/NetworkManager/system-connections/static-ethernet.nmconnection
+        
+        # Reload NetworkManager
+        sudo systemctl reload NetworkManager 2>/dev/null || warn "Failed to reload NetworkManager"
+        
+        log "✓ Static IP configured: 192.168.1.2/24 with gateway 192.168.1.1"
+    else
+        warn "Could not detect primary network interface for static IP configuration"
+    fi
     
     # Add source to hyprland.conf if not exists
     local hypr_conf="$HOME/.config/hypr/hyprland.conf"
@@ -879,6 +932,13 @@ MONITORS
     else
         warn "hyprland.conf not found at $hypr_conf"
     fi
+
+    # Add theme config
+    sudo mkdir -p /etc/sddm.conf.d
+    sudo tee /etc/sddm.conf.d/theme.conf > /dev/null <<SDDM_CONF
+[Theme]
+Current=sugar-candy
+SDDM_CONF
 
     # Add environment variables
     mkdir -p "$HOME/.config/hypr/hyprland"
@@ -946,7 +1006,7 @@ MISC
             "scale": 1
         },
         "transparency": {
-            "enabled": false,
+            "enabled": true,
             "base": 0.5,
             "layers": 0.4
         }
@@ -1071,11 +1131,11 @@ MISC
         },
         "showOnHover": true,
         "status": {
-            "showAudio": false,
-            "showBattery": true,
+            "showAudio": true,
+            "showBattery": false,
             "showBluetooth": true,
             "showKbLayout": false,
-            "showMicrophone": false,
+            "showMicrophone": true,
             "showNetwork": true,
             "showLockStatus": true
         },
@@ -1270,7 +1330,7 @@ MISC
         "playerAliases": [{ "from": "com.github.th_ch.youtube_music", "to": "YT Music" }],
         "weatherLocation": "",
         "useFahrenheit": false,
-        "useTwelveHourClock": false,
+        "useTwelveHourClock": true,
         "smartScheme": true,
         "visualiserBars": 45
     },
@@ -1297,7 +1357,7 @@ MISC
             "audioOutputChanged": true,
             "capsLockChanged": true,
             "chargingChanged": true,
-            "configLoaded": true,
+            "configLoaded": false,
             "dndChanged": true,
             "gameModeChanged": true,
             "kbLayoutChanged": true,
