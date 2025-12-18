@@ -1667,6 +1667,13 @@ CLI_JSON
 }
 CLI_JSON
 
+    cat > "$HOME/.config/fish/functions/fish_greeting.fish" << 'SETUP_SCRIPT'
+function fish_greeting
+    set_color normal
+    fastfetch --logo-type kitty
+end
+SETUP_SCRIPT
+
     cat > "$HOME/.config/fastfetch/fastfetch.sh" << 'SETUP_SCRIPT'
 if [ -z "${*}" ]; then
   clear
