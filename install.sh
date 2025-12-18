@@ -738,10 +738,6 @@ setup_gdm() {
     # Cài đặt GDM
     sudo pacman -S --needed --noconfirm gdm
     
-    # Tắt các display manager khác nếu có
-    sudo systemctl disable sddm.service 2>/dev/null || true
-    sudo systemctl disable lightdm.service 2>/dev/null || true
-    
     # Bật GDM
     sudo systemctl enable gdm.service
     
@@ -774,7 +770,7 @@ setup_directories() {
     gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal kitty
 
     mkdir -p "$HOME/.config/fastfetch/logo"
-    curl -L -o "$HOME/.face.png" https://raw.githubusercontent.com/hoangducdt/caelestia/main/.face.png
+    curl -L -o "$HOME/.face" https://raw.githubusercontent.com/hoangducdt/caelestia/main/.face.png
     curl -L -o "$HOME/.config/fastfetch/logo/aisaka.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/aisaka.icon
     curl -L -o "$HOME/.config/fastfetch/logo/hyprland.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/hyprland.icon
     curl -L -o "$HOME/.config/fastfetch/logo/loli.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/loli.icon
