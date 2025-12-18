@@ -736,7 +736,7 @@ setup_gdm() {
     log "Installing GDM..."
     
     # Cài đặt GDM
-    sudo pacman -S --needed --noconfirm gdm
+    sudo pacman -S --needed --noconfirm gdm gdm-settings
     
     # Bật GDM
     sudo systemctl enable gdm.service
