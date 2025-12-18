@@ -457,8 +457,8 @@ setup_development() {
         "neovim" "docker" "docker-compose" "git" "github-cli" "codium"
         #"code"
 
-    dotnet new install Avalonia.Templates
-    dotnet new install "Microsoft.AspNetCore.Blazor.Templates::3.0.0-*"
+    #dotnet new install Avalonia.Templates
+    #dotnet new install "Microsoft.AspNetCore.Blazor.Templates::3.0.0-*"
     
     # AUR packages
     install_aur_package "rider" 900
