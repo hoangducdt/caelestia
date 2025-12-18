@@ -783,7 +783,7 @@ setup_directories() {
     mkdir -p "$HOME/.config/hypr/hyprland"
     mkdir -p "$HOME/.config/fastfetch/logo"
 mkdir -p "$HOME/.config/kitty"
-mkdir -p "$HOME/.config/xfce"
+mkdir -p "$HOME/.config/xfce4"
     
     # Wallpapers
     if [ ! -d "$HOME/Pictures/Wallpapers/.git" ]; then
