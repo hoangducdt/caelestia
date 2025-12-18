@@ -1549,7 +1549,11 @@ CLI_JSON
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
     "source": "\"$(~/.config/fastfetch/fastfetch.sh logo)\"",
-    "height": 18
+    "height": 18,
+    "padding": {
+        "top": 2,
+        "left": 1
+    }
   },
   "modules": [
     "break",
@@ -1560,7 +1564,7 @@ CLI_JSON
     },
     {
       "type": "custom",
-      "format": "\u001b[36m╭───────────────────────────────────────────────╮"
+      "format": "╭───────────────────────────────────────────────╮"
     },
     {
       "type": "chassis",
@@ -1648,7 +1652,7 @@ CLI_JSON
     {
       "type": "uptime",
       "key": "• 󱫐 Uptime ",
-      "keyColor": "red",
+      "keyColor": "red"
     },
     {
       "type": "custom",
