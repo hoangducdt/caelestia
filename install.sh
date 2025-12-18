@@ -453,6 +453,9 @@ setup_development() {
         "dotnet-sdk" "dotnet-runtime" "dotnet-sdk-9.0" "dotnet-sdk-8.0" \
         "aspnet-runtime" "mono" "mono-msbuild" \
         "code" "neovim" "docker" "docker-compose" "git" "github-cli"
+
+    dotnet new install Avalonia.Templates
+    dotnet new install "Microsoft.AspNetCore.Blazor.Templates::3.0.0-*"
     
     # AUR packages
     install_aur_package "rider" 900
