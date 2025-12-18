@@ -1560,50 +1560,50 @@ CLI_JSON
     },
     {
       "type": "custom",
-      "format": "\u001b[36m╭──────────────────────────────────────────╮"
+      "format": "\u001b[36m╭───────────────────────────────────────────────╮"
     },
     {
       "type": "chassis",
-      "key": "├ 󰇺 Chassis",
+      "key": "• 󰇺 Chassis",
       "format": "{1} {2} {3}"
     },
     {
       "type": "os",
-      "key": "├ 󰣇 OS",
+      "key": "• 󰣇 OS",
       "format": "{2}",
       "keyColor": "red"
     },
     {
       "type": "kernel",
-      "key": "├  Kernel",
+      "key": "•  Kernel",
       "format": "{2}",
       "keyColor": "red"
     },
     {
       "type": "packages",
-      "key": "├ 󰏗 Packages",
+      "key": "• 󰏗 Packages",
       "keyColor": "green"
     },
     {
       "type": "display",
-      "key": "├ 󰍹 Display",
+      "key": "• 󰍹 Display",
       "format": "{1}x{2} @ {3}Hz [{7}]",
       "keyColor": "green"
     },
     {
       "type": "terminal",
-      "key": "├  Terminal",
+      "key": "•  Terminal",
       "keyColor": "yellow"
     },
     {
       "type": "wm",
-      "key": "├ 󱗃 WM",
+      "key": "• 󱗃 WM",
       "format": "{2}",
       "keyColor": "yellow"
     },
     {
       "type": "custom",
-      "format": "╰──────────────────────────────────────────╯"
+      "format": "╰───────────────────────────────────────────────╯"
     },
     "break",
     {
@@ -1613,46 +1613,46 @@ CLI_JSON
     },
     {
       "type": "custom",
-      "format": "╭──────────────────────────────────────────╮"
+      "format": "╭───────────────────────────────────────────────╮"
     },
     {
       "type": "cpu",
       "format": "{1} @ {7}",
-      "key": "├  CPU",
+      "key": "•  CPU",
       "keyColor": "blue"
     },
     {
       "type": "gpu",
       "format": "{1} {2}",
-      "key": "├ 󰊴 GPU",
+      "key": "• 󰊴 GPU",
       "keyColor": "blue"
     },
     {
       "type": "gpu",
       "format": "{3}",
-      "key": "├  GPU Driver",
+      "key": "•  GPU Driver",
       "keyColor": "magenta"
     },
     {
       "type": "memory",
-      "key": "├  Memory ",
+      "key": "•  Memory ",
       "keyColor": "magenta"
     },
     {
       "type": "disk",
-      "key": "├ 󱦟 OS Age ",
+      "key": "• 󱦟 OS Age ",
       "folders": "/",
       "keyColor": "red",
       "format": "{days} days"
     },
     {
       "type": "uptime",
-      "key": "├ 󱫐 Uptime ",
-      "keyColor": "red"
+      "key": "• 󱫐 Uptime ",
+      "keyColor": "red",
     },
     {
       "type": "custom",
-      "format": "╰──────────────────────────────────────────╯"
+      "format": "╰───────────────────────────────────────────────╯"
     },
     {
       "type": "colors",
