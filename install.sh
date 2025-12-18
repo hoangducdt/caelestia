@@ -68,6 +68,9 @@ echo ""
 log "Estimated time: 30-60 minutes"
 echo ""
 
+#yay -S lmstudio
+#yay -S docker-desktop
+
 readonly LOG="$HOME/setup_complete_$(date +%Y%m%d_%H%M%S).log"
 readonly STATE_DIR="$HOME/.cache/caelestia-setup"
 readonly STATE_FILE="$STATE_DIR/setup_state.json"
