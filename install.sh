@@ -1056,9 +1056,9 @@ FCITX
         grep -q "fcitx5" "$HOME/.config/hypr/hyprland/execs.conf" || \
             echo "exec-once = sleep 2; fcitx5" >> "$HOME/.config/hypr/hyprland/execs.conf"
         grep -q "steam" "$HOME/.config/hypr/hyprland/execs.conf" || \
-            echo "exec-once = sleep 3;  steam" >> "$HOME/.config/hypr/hyprland/execs.conf"
+            echo "exec-once = sleep 3; steam" >> "$HOME/.config/hypr/hyprland/execs.conf"
         grep -q "vesktop" "$HOME/.config/hypr/hyprland/execs.conf" || \
-            echo "exec-once = sleep 4;  vesktop" >> "$HOME/.config/hypr/hyprland/execs.conf"
+            echo "exec-once = sleep 4; vesktop" >> "$HOME/.config/hypr/hyprland/execs.conf"
     fi
     
     # Configure VRR
