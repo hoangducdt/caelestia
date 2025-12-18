@@ -375,8 +375,10 @@ setup_base_packages() {
         "base-devel" "git" "wget" "curl" "yay" "fish" \
         "wl-clipboard" "xdg-desktop-portal-hyprland" \
         "qt5-wayland" "qt6-wayland" \
-        "gnome-keyring" "polkit-gnome" "nautilus" \
-        "gnome-disk-utility" "kitty"
+        "gnome-keyring" "polkit-gnome" \
+        "gnome-disk-utility" "kitty" \
+        "tumbler" "ffmpegthumbnailer" "libgsf"
+        #"nautilus"
     
     mark_completed "base_packages"
     log "✓ Base packages installed"
@@ -787,8 +789,8 @@ setup_directories() {
             "$HOME/Pictures/Wallpapers" 2>&1 | tee -a "$LOG" || warn "Wallpapers clone failed"
     fi
 
-    install_aur_package "nautilus-open-any-terminal" 900
-    gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal kitty
+    #install_aur_package "nautilus-open-any-terminal" 900
+    #gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal kitty
     
     curl -L -o "$HOME/.face" https://raw.githubusercontent.com/hoangducdt/caelestia/main/.face.png
     curl -L -o "$HOME/.config/fastfetch/logo/aisaka.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/aisaka.icon
@@ -797,7 +799,7 @@ setup_directories() {
     
     chmod 644 ~/.face
     
-    # Thêm bookmarks vào Nautilus
+    # Thêm bookmarks
     cat >> ~/.config/gtk-3.0/bookmarks <<EOF
 file://$HOME/Downloads
 file://$HOME/Documents
@@ -957,11 +959,12 @@ MONITORS
         fi
         
         # Update fileExplorer
-        if grep -q '^\$fileExplorer' "$hypr_vars"; then
-            sed -i 's|^\$fileExplorer.*|$fileExplorer = nautilus|' "$hypr_vars"
-        else
-            echo '$fileExplorer = nautilus' >> "$hypr_vars"
-        fi
+        #if grep -q '^\$fileExplorer' "$hypr_vars"; then
+        #    sed -i 's|^\$fileExplorer.*|$fileExplorer = nautilus|' "$hypr_vars"
+        #else
+        #    echo '$fileExplorer = nautilus' >> "$hypr_vars"
+        #fi
+        #
         
         log "✓ Updated Hyprland variables"
     else
@@ -1074,6 +1077,11 @@ env = XMODIFIERS,@im=fcitx
 env = SDL_IM_MODULE,fcitx
 env = GLFW_IM_MODULE,fcitx
 FCITX_ENV
+
+    cat >> "$HOME/.config/xfce4/helpers.rc" <<'FXCE4'
+TerminalEmulator=kitty
+TerminalEmulatorDismissed=true
+FXCE4
     
     # Add autostart
     if [ -f "$HOME/.config/hypr/hyprland/execs.conf" ]; then
@@ -1138,7 +1146,7 @@ MISC
             "terminal": ["kitty"],
             "audio": ["pavucontrol"],
             "playback": ["mpv"],
-            "explorer": ["nautilus"]
+            "explorer": ["thunar"]
         },
         "battery": {
             "warnLevels": [
