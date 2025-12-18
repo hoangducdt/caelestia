@@ -450,7 +450,8 @@ setup_development() {
     log "Installing development tools..."
     
     sudo pacman -S --needed --noconfirm \
-        "dotnet-sdk" "dotnet-runtime" "aspnet-runtime" "mono" "mono-msbuild" \
+        "dotnet-sdk" "dotnet-runtime" "dotnet-sdk-9.0" "dotnet-sdk-8.0" \
+        "aspnet-runtime" "mono" "mono-msbuild" \
         "code" "neovim" "docker" "docker-compose" "git" "github-cli"
     
     # AUR packages
