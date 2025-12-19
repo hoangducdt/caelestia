@@ -762,7 +762,7 @@ setup_meta_packages() {
 		"fcitx5-bamboo-git"
 		
 		"gdm"
-#"gdm-settings"
+"gdm-settings"
 		
 		# Fonts
 		"ttf-jetbrains-mono-nerd"
