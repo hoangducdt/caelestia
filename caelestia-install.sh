@@ -1000,6 +1000,7 @@ setup_directories() {
     mkdir -p "$HOME/.config/fastfetch/logo"
     mkdir -p "$HOME/.config/kitty"
     mkdir -p "$HOME/.config/xfce4"
+mkdir -p "$HOME/.config/gtk-3.0"
     
     # Wallpapers
     if [ ! -d "$HOME/Pictures/Wallpapers/.git" ]; then
