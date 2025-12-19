@@ -868,11 +868,11 @@ setup_ai_ml() {
     
     # Install PyTorch with CUDA support via pip
     ai_info "Installing PyTorch with CUDA 12 support..."
-    pip install --user torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    #pip install --user torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
     
     # Install additional ML tools
     ai_info "Installing additional ML tools..."
-    pip install --user transformers accelerate diffusers invisible-watermark
+    #pip install --user transformers accelerate diffusers invisible-watermark
 	
 	sudo systemctl enable --now ollama.service 2>/dev/null || true
     
