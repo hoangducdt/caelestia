@@ -1085,7 +1085,7 @@ setup_configs() {
                 warn "  ✗ Failed to link: $item_name"
             fi
         else
-            warn "  ⊘ Skipped: $item_name (backup failed)"
+            warn "  ⊘ Skipped: $item_name backup failed"
         fi
     done
     
