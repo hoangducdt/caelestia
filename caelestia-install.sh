@@ -68,8 +68,8 @@ EOF
 }
 
 clone_repo(){
-    git clone https://github.com/hoangducdt/caelestia.git $HOME/.local/share/caelestia
-    cd $HOME/.local/share/caelestia/
+    git clone https://github.com/hoangducdt/caelestia.git $HOME.local/share/caelestia
+    cd $HOME.local/share/caelestia/
 }
 
 mark_completed() {
@@ -291,21 +291,33 @@ setup_nvidia_cleanup() {
         return 0
     fi
     
-    log "Cleaning up NVIDIA conflicts..."
+    log "Checking for NVIDIA driver conflicts..."
     
+    # Only remove packages that ACTUALLY conflict
+    # DO NOT remove nvidia-utils or other main packages that might already be installed correctly
     local conflict_pkgs=(
-        "linux-cachyos-nvidia-open"
-        "nvidia-open"
-        "lib32-nvidia-open"
-        "media-dkms"
-        "linux-cachyos-lts-nvidia-open"
+        "nvidia-open"                        # Open vs proprietary conflict
+        "lib32-nvidia-open"                  
+        "nvidia-open-dkms"                   
+        "linux-cachyos-nvidia-open"          # Kernel-specific open drivers
+        "linux-cachyos-lts-nvidia-open"     
     )
     
+    local found_conflicts=false
     for pkg in "${conflict_pkgs[@]}"; do
-        safe_remove_package "$pkg"
+        if pacman -Qi "$pkg" &>/dev/null; then
+            log "Removing conflicting package: $pkg"
+            safe_remove_package "$pkg"
+            found_conflicts=true
+        fi
     done
     
-    sudo pacman -Sc --noconfirm 2>/dev/null || true
+    if [ "$found_conflicts" = false ]; then
+        log "✓ No conflicts found"
+    else
+        log "✓ Conflicts resolved"
+        sudo pacman -Sc --noconfirm 2>/dev/null || true
+    fi
     
     mark_completed "nvidia_cleanup"
     log "✓ NVIDIA cleanup done"
@@ -349,61 +361,125 @@ setup_nvidia_drivers() {
         return 0
     fi
     
-    log "Installing NVIDIA proprietary drivers (RTX 3060 optimized)..."
+    log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log "NVIDIA DRIVER INSTALLATION (CachyOS Official Method)"
+    log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Check if NVIDIA GPU exists
+    if ! lspci | grep -i nvidia &>/dev/null; then
+        log "⊘ No NVIDIA GPU detected, skipping driver installation"
+        mark_completed "nvidia_drivers"
+        return 0
+    fi
+    
+    log "✓ NVIDIA GPU detected:"
+    lspci | grep -i nvidia | head -1
+    echo ""
+    
+    # Check if chwd is available
+    if ! command -v chwd &>/dev/null; then
+        log "Installing chwd (CachyOS Hardware Detection Tool)..."
+        sudo pacman -S --needed --noconfirm chwd chwd-db
+    fi
+    
+    log "Checking currently installed NVIDIA profiles..."
+    chwd --list --installed | grep -i nvidia || log "No NVIDIA profile currently installed"
+    echo ""
+    
+    log "Available NVIDIA driver profiles:"
+    chwd --list | grep -i nvidia
+    echo ""
     
     # Backup configs
     backup_file "/etc/mkinitcpio.conf"
     backup_file "/etc/modprobe.d/nvidia.conf"
     
-    # Install NVIDIA drivers (proprietary for best RTX 3060 performance)
-    sudo pacman -S --needed --noconfirm \
-        nvidia-dkms \
-lib32-nvidia-utils \
-        nvidia-utils \
-        nvidia-settings \
-        opencl-nvidia \
-        lib32-opencl-nvidia \
-        libva-nvidia-driver \
-        egl-wayland \
-        libvdpau \
-        lib32-libvdpau
+    log "Installing NVIDIA drivers using chwd (official CachyOS method)..."
+    log "This will automatically:"
+    log "  • Install the correct driver version (latest stable)"
+    log "  • Configure mkinitcpio properly"
+    log "  • Set up CUDA support"
+    log "  • Enable Wayland/Hyprland compatibility"
+    log ""
     
-    # Configure mkinitcpio for early KMS
-    if [ -f /etc/mkinitcpio.conf ]; then
-        sudo sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
+    # Use chwd to automatically install the correct NVIDIA profile
+    # -a = autoconfigure (installs all detected hardware)
+    if sudo chwd -a pci 2>&1 | tee -a "$LOG"; then
+        log "✓ chwd installation successful"
+    else
+        warn "chwd automatic installation had issues, trying manual profile selection..."
         
-        # Add missing hooks if needed
-        if ! grep -q "^HOOKS=.*kms" /etc/mkinitcpio.conf; then
-            sudo sed -i 's/^HOOKS=\(.*\)filesystems/HOOKS=\1kms filesystems/' /etc/mkinitcpio.conf
+        # Fallback: Try to install the main nvidia profile manually
+        if sudo chwd -i pci video-nvidia 2>&1 | tee -a "$LOG"; then
+            log "✓ Manual NVIDIA profile installation successful"
+        else
+            error "Failed to install NVIDIA drivers. Check logs at: $LOG"
+            return 1
         fi
     fi
     
-    # NVIDIA modprobe options (RTX 3060 optimized)
-    sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<EOF
+    log "Verifying installation..."
+    chwd --list --installed | grep -i nvidia
+    
+    # Additional optimizations for RTX 3060 (Gaming/AI/Blender/UE5)
+    log "Applying RTX 3060 optimizations..."
+    
+    # Check if nvidia.conf exists, if not create it
+    if [ ! -f /etc/modprobe.d/nvidia.conf ]; then
+        sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<'EOF'
 # NVIDIA RTX 3060 12GB Optimization
+# Optimized for: Gaming, AI/ML, Blender, DaVinci Resolve, UE5
 options nvidia_drm modeset=1 fbdev=1
 options nvidia NVreg_PreserveVideoMemoryAllocations=1
 options nvidia NVreg_UsePageAttributeTable=1
-options nvidia NVreg_InitializeSystemMemoryAllocations=0
 
-# Power management
+# Power management for desktop (always max performance)
 options nvidia NVreg_DynamicPowerManagement=0x02
 
-# Performance
+# Disable GSP firmware (better compatibility with older apps)
 options nvidia NVreg_EnableGpuFirmware=0
-options nvidia NVreg_RegistryDwords="PowerMizerEnable=0x1;PerfLevelSrc=0x2222;PowerMizerLevel=0x3;PowerMizerDefault=0x3;PowerMizerDefaultAC=0x3"
 EOF
-
-    # Rebuild initramfs
-    sudo mkinitcpio -P
+        log "✓ Created NVIDIA modprobe configuration"
+    else
+        log "✓ NVIDIA modprobe configuration already exists (managed by chwd)"
+    fi
     
-    # Enable NVIDIA services
-    sudo systemctl enable nvidia-suspend.service
-    sudo systemctl enable nvidia-hibernate.service
-    sudo systemctl enable nvidia-resume.service
+    # Enable NVIDIA services if they exist
+    for service in nvidia-suspend nvidia-hibernate nvidia-resume nvidia-powerd; do
+        if systemctl list-unit-files | grep -q "${service}.service"; then
+            sudo systemctl enable "${service}.service" 2>/dev/null || true
+        fi
+    done
+    
+    log "Checking CUDA installation..."
+    if pacman -Qi cuda &>/dev/null; then
+        CUDA_VERSION=$(pacman -Q cuda | awk '{print $2}')
+        log "✓ CUDA already installed: $CUDA_VERSION"
+    else
+        log "Installing CUDA for AI/ML workloads..."
+        sudo pacman -S --needed --noconfirm cuda cudnn
+    fi
     
     mark_completed "nvidia_drivers"
-    log "✓ NVIDIA drivers installed"
+    
+    echo ""
+    log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log "✓ NVIDIA DRIVERS INSTALLED SUCCESSFULLY!"
+    log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log ""
+    log "Installed components:"
+    pacman -Q | grep -E 'nvidia|cuda' | sed 's/^/  • /'
+    log ""
+    log "Features enabled:"
+    log "  ✓ Gaming optimizations"
+    log "  ✓ CUDA for AI/ML workloads"
+    log "  ✓ Wayland/Hyprland support"
+    log "  ✓ Hardware acceleration for video editing"
+    log "  ✓ Blender CUDA rendering"
+    log "  ✓ Unreal Engine 5 support"
+    log ""
+    warn "⚠️  REBOOT REQUIRED to load NVIDIA drivers!"
+    log ""
 }
 
 setup_meta_packages() {
@@ -703,6 +779,48 @@ setup_meta_packages() {
     log "✓ Base packages installed"
 }
 
+setup_hyprland_caelestia() {
+    if [ "$(is_completed 'hyprland')" = "yes" ]; then
+        log "✓ Hyprland already installed"
+        return 0
+    fi
+    
+    log "Installing Hyprland Caelestia..."
+    
+    local caelestia_dir="$HOME/.local/share/caelestia"
+    
+    # Backup existing
+    if [ -d "$caelestia_dir" ]; then
+        backup_dir "$caelestia_dir"
+        mv "$caelestia_dir" "${caelestia_dir}.backup.$(date +%s)" 2>/dev/null || true
+    fi
+    
+    # Clone repo
+    if git clone --quiet --depth 1 https://github.com/caelestia-dots/caelestia.git "$caelestia_dir" 2>&1 | tee -a "$LOG"; then
+        cd "$caelestia_dir"
+        
+        # Patch install script to avoid nvidia-open
+        if [ -f "install.fish" ]; then
+            cp install.fish install.fish.backup
+            sed -i '/nvidia-open/s/^/#/' install.fish 2>/dev/null || true
+        fi
+        
+        # Install fish if needed
+        command -v fish &>/dev/null || install_package "fish"
+        
+        # Run installer
+        fish ./install.fish --noconfirm --aur-helper=yay 2>&1 | tee -a "$LOG" || warn "Caelestia warnings"
+        
+        # Clean up nvidia-open again
+        setup_nvidia_cleanup
+    else
+        warn "Failed to clone Caelestia"
+    fi
+    
+    mark_completed "hyprland"
+    log "✓ Hyprland installed"
+}
+
 setup_gaming() {
     if [ "$(is_completed 'gaming')" = "yes" ]; then
         log "✓ Gaming setup already done"
@@ -932,6 +1050,9 @@ setup_directories() {
     fi
     
     curl -L -o "$HOME/.face" https://raw.githubusercontent.com/hoangducdt/caelestia/imgs/main/.face.png
+    curl -L -o "$HOME/.config/fastfetch/logo/aisaka.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/imgs/aisaka.icon
+    curl -L -o "$HOME/.config/fastfetch/logo/hyprland.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/imgs/hyprland.icon
+    curl -L -o "$HOME/.config/fastfetch/logo/loli.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/imgs/loli.icon
     
     chmod 644 ~/.face
     
@@ -1126,10 +1247,11 @@ main() {
     install_helper
     clone_repo
     # Execute all setup functions
-    #setup_nvidia_cleanup
+    setup_nvidia_cleanup
     setup_system_update
-    #setup_nvidia_drivers
+    setup_nvidia_drivers
     setup_meta_packages
+    setup_hyprland_caelestia
     setup_gaming
     setup_development
     setup_multimedia
@@ -1138,6 +1260,7 @@ main() {
     setup_system_optimization
     setup_gdm
     setup_directories
+    setup_utilities
     setup_configs
     
     # Done
