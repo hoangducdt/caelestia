@@ -1215,7 +1215,6 @@ main() {
     setup_system_optimization
     setup_gdm
     setup_directories
-    setup_utilities
     setup_configs
     
     # Done
