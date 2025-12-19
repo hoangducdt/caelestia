@@ -291,17 +291,14 @@ setup_nvidia_cleanup() {
         return 0
     fi
     
-    log "Cleaning up NVIDIA conflicts (CachyOS optimized)..."
+    log "Cleaning up NVIDIA conflicts..."
     
-    # CachyOS-specific conflicts
     local conflict_pkgs=(
-        "linux-cachyos-nvidia-open"         # CachyOS open driver (conflicts with proprietary)
-        "nvidia-open"                        # Open source variant
-        "lib32-nvidia-open"                  # 32-bit open source
-        "nvidia-open-dkms"                   # DKMS variant
-        "media-dkms"                         # Old media driver
-        "linux-cachyos-lts-nvidia-open"     # LTS kernel open driver
-        "egl-wayland-git"                    # Git version (use stable)
+        "linux-cachyos-nvidia-open"
+        "nvidia-open"
+        "lib32-nvidia-open"
+        "media-dkms"
+        "linux-cachyos-lts-nvidia-open"
     )
     
     for pkg in "${conflict_pkgs[@]}"; do
