@@ -68,8 +68,8 @@ EOF
 }
 
 clone_repo(){
-    git clone https://github.com/hoangducdt/caelestia.git $HOME.local/share/caelestia
-    cd $HOME.local/share/caelestia/
+    git clone https://github.com/hoangducdt/caelestia.git $HOME/.local/share/caelestia
+    cd $HOME/.local/share/caelestia/
 }
 
 mark_completed() {
