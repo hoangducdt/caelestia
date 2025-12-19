@@ -762,7 +762,7 @@ setup_meta_packages() {
 		"fcitx5-bamboo-git"
 		
 		"gdm"
-"gdm-settings"
+		"gdm-settings"
 		
 		# Fonts
 		"ttf-jetbrains-mono-nerd"
@@ -978,7 +978,6 @@ setup_gdm() {
     mark_completed "gdm"
     log "✓ GDM installed and enabled"
 }
-
 
 setup_directories() {
     if [ "$(is_completed 'directories')" = "yes" ]; then
