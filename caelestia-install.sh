@@ -419,7 +419,7 @@ setup_nvidia_drivers() {
     fi
     
     log "Verifying installation..."
-    chwd --list --installed | grep -i nvidia
+    chwd --list-installed | grep -i nvidia
     
     # Additional optimizations for RTX 3060 (Gaming/AI/Blender/UE5)
     log "Applying RTX 3060 optimizations..."
