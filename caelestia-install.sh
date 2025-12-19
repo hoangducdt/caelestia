@@ -779,48 +779,6 @@ setup_meta_packages() {
     log "✓ Base packages installed"
 }
 
-setup_hyprland_caelestia() {
-    if [ "$(is_completed 'hyprland')" = "yes" ]; then
-        log "✓ Hyprland already installed"
-        return 0
-    fi
-    
-    log "Installing Hyprland Caelestia..."
-    
-    local caelestia_dir="$HOME/.local/share/caelestia"
-    
-    # Backup existing
-    if [ -d "$caelestia_dir" ]; then
-        backup_dir "$caelestia_dir"
-        mv "$caelestia_dir" "${caelestia_dir}.backup.$(date +%s)" 2>/dev/null || true
-    fi
-    
-    # Clone repo
-    if git clone --quiet --depth 1 https://github.com/caelestia-dots/caelestia.git "$caelestia_dir" 2>&1 | tee -a "$LOG"; then
-        cd "$caelestia_dir"
-        
-        # Patch install script to avoid nvidia-open
-        if [ -f "install.fish" ]; then
-            cp install.fish install.fish.backup
-            sed -i '/nvidia-open/s/^/#/' install.fish 2>/dev/null || true
-        fi
-        
-        # Install fish if needed
-        command -v fish &>/dev/null || install_package "fish"
-        
-        # Run installer
-        fish ./install.fish --noconfirm --aur-helper=yay 2>&1 | tee -a "$LOG" || warn "Caelestia warnings"
-        
-        # Clean up nvidia-open again
-        setup_nvidia_cleanup
-    else
-        warn "Failed to clone Caelestia"
-    fi
-    
-    mark_completed "hyprland"
-    log "✓ Hyprland installed"
-}
-
 setup_gaming() {
     if [ "$(is_completed 'gaming')" = "yes" ]; then
         log "✓ Gaming setup already done"
@@ -1248,7 +1206,6 @@ main() {
     setup_system_update
     setup_nvidia_drivers
     setup_meta_packages
-    setup_hyprland_caelestia
     setup_gaming
     setup_development
     setup_multimedia
