@@ -1050,9 +1050,6 @@ setup_directories() {
     fi
     
     curl -L -o "$HOME/.face" https://raw.githubusercontent.com/hoangducdt/caelestia/imgs/main/.face.png
-    curl -L -o "$HOME/.config/fastfetch/logo/aisaka.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/imgs/aisaka.icon
-    curl -L -o "$HOME/.config/fastfetch/logo/hyprland.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/imgs/hyprland.icon
-    curl -L -o "$HOME/.config/fastfetch/logo/loli.icon" https://raw.githubusercontent.com/hoangducdt/caelestia/main/imgs/loli.icon
     
     chmod 644 ~/.face
     
