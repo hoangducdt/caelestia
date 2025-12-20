@@ -12,10 +12,12 @@ readonly NC='\e[0m'                    # Reset màu
 
 LOG_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-readonly LOG="$HOME/Log/setup_complete_${LOG_TIMESTAMP}.log"
+readonly LOG="$HOME/.log/setup_complete_${LOG_TIMESTAMP}.log"
 readonly STATE_DIR="$HOME/.cache/caelestia-setup"
 readonly STATE_FILE="$STATE_DIR/setup_state.json"
 readonly BACKUP_DIR="$HOME/Documents/caelestia-configs-${BACKUP_TIMESTAMP}"
+
+mkdir -p "$HOME/.log"
 
 # Define functions before use
 log() {
