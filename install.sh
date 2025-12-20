@@ -1209,6 +1209,7 @@ setup_configs() {
 	    error "Configs directory not found at: $configs_dir"
 	fi
 	
+	# Function to confirm overwrite
 	confirm_overwrite() {
 	    local target_path="$1"
 	    
@@ -1224,10 +1225,11 @@ setup_configs() {
 	    return 0
 	}
 	
-	# Sync EVERYTHING recursively using find
+	# Sync EVERYTHING recursively including dotfiles
 	log "Syncing ALL configuration items recursively..."
-	find "$configs_dir" -mindepth 1 -print0 | while IFS= read -r -d '' item; do
-	    local relative_path="${item#"$configs_dir/"}"
+	find "$configs_dir" -mindepth 1 \( -name ".*" -o ! -name ".*" \) ! -name "." ! -name ".." -print0 | while IFS= read -r -d '' item; do
+	    # Calculate relative path
+	    local relative_path="${item#"$configs_dir"/}"
 	    local target_path="$config_home/$relative_path"
 	    
 	    # Skip broken symlinks
