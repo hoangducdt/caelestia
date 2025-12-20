@@ -17,11 +17,10 @@ readonly STATE_DIR="$HOME/.cache/caelestia-setup"
 readonly STATE_FILE="$STATE_DIR/setup_state.json"
 readonly BACKUP_DIR="$HOME/Documents/caelestia-configs-${BACKUP_TIMESTAMP}"
 
-mkdir -p "$HOME/.log"
-
 # Define functions before use
 log() {
-    echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
+    mkdir -p "$HOME/.log"
+	echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
 }
 
 warn() {
