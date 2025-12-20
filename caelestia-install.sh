@@ -998,17 +998,13 @@ setup_directories() {
     mkdir -p "$HOME/.config/fastfetch/logo"
     mkdir -p "$HOME/.config/kitty"
     mkdir -p "$HOME/.config/xfce4"
-mkdir -p "$HOME/.config/gtk-3.0"
+    mkdir -p "$HOME/.config/gtk-3.0"
     
     # Wallpapers
     if [ ! -d "$HOME/Pictures/Wallpapers/.git" ]; then
         git clone --quiet --depth 1 https://github.com/mylinuxforwork/wallpaper.git \
             "$HOME/Pictures/Wallpapers" 2>&1 | tee -a "$LOG" || warn "Wallpapers clone failed"
     fi
-    
-    curl -L -o "$HOME/.face" https://raw.githubusercontent.com/hoangducdt/caelestia/imgs/main/.face.png
-    
-    chmod 644 ~/.face
     
     # Thêm bookmarks
     cat >> $HOME/.config/gtk-3.0/bookmarks <<EOF
@@ -1035,7 +1031,7 @@ setup_configs() {
     # Define the repo Configs directory
     local repo_dir="$HOME/.local/share/caelestia"
     local configs_dir="$repo_dir/Configs"
-    local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+    local config_home="${XDG_CONFIG_HOME:-$HOME}"
     
     # Check if Configs directory exists
     if [ ! -d "$configs_dir" ]; then
@@ -1099,13 +1095,15 @@ setup_configs() {
     fi
     
     # Make executable scripts
-    if [ -d "$config_home/hypr/scripts" ]; then
-        chmod +x "$config_home/hypr/scripts"/*.sh 2>/dev/null || true
+    if [ -d "$config_home/.config/hypr/scripts" ]; then
+        chmod +x "$config_home/.config/hypr/scripts"/*.sh 2>/dev/null || true
     fi
     
-    if [ -f "$config_home/fastfetch/fastfetch.sh" ]; then
-        chmod +x "$config_home/fastfetch/fastfetch.sh"
+    if [ -f "$config_home/.config/fastfetch/fastfetch.sh" ]; then
+        chmod +x "$config_home/.config/fastfetch/fastfetch.sh"
     fi
+
+    chmod 644 "$config_home/.face"
     
     # DNS configuration - modify existing values in resolved.conf
     log "Configuring system settings..."
