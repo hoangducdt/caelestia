@@ -1199,63 +1199,54 @@ setup_configs() {
     
     log "Installing configuration files..."
     
-    # Define the repo Configs directory
-    local repo_dir="$HOME/.local/share/caelestia"
-    local configs_dir="$repo_dir/Configs"
-    local config_home="${XDG_CONFIG_HOME:-$HOME}"
-    
-    # Check if Configs directory exists
-    if [ ! -d "$configs_dir" ]; then
-        error "Configs directory not found at: $configs_dir"
-    fi
-    
-    # Function to confirm overwrite
-    confirm_overwrite() {
-        local target_path="$1"
-        
-        if [ -e "$target_path" ] || [ -L "$target_path" ]; then
-            # Backup existing config
-            local backup_name
-            backup_name="$(basename "$target_path").bak_$(date +%Y%m%d_%H%M%S)"
-            log "Backing up existing: $target_path → $backup_name"
-            mv "$target_path" "${target_path}_${backup_name}" 2>/dev/null || {
-                warn "Could not backup $target_path"
-                return 1
-            }
-        fi
-        return 0
-    }
-    
-    # Sync all directories from Configs/ to ~/
-    log "Syncing configuration directories..."
-    
-    # Find all directories in Configs/ (one level deep)
-    for config_item in "$configs_dir"/*; do
-        if [ ! -e "$config_item" ]; then
-            continue
-        fi
-        
-        local item_name
-        item_name=$(basename "$config_item")
-        local target_path="$config_home/$item_name"
-        
-        log "Processing: $item_name"
-        
-        # Confirm overwrite and create symbolic link
-        if confirm_overwrite "$target_path"; then
-            # Create parent directory if needed
-            mkdir -p "$(dirname "$target_path")"
-            
-            # Create symbolic link
-            if ln -sf "$(realpath "$config_item")" "$target_path" 2>/dev/null; then
-                log "  ✓ Linked: $item_name → $config_home/$item_name"
-            else
-                warn "  ✗ Failed to link: $item_name"
-            fi
-        else
-            warn "  ⊘ Skipped: $item_name (backup failed)"
-        fi
-    done
+	# Define the repo Configs directory
+	local repo_dir="$HOME/.local/share/caelestia"
+	local configs_dir="$repo_dir/Configs"
+	local config_home="${XDG_CONFIG_HOME:-$HOME}"
+	
+	# Check if Configs directory exists
+	if [ ! -d "$configs_dir" ]; then
+	    error "Configs directory not found at: $configs_dir"
+	fi
+	
+	confirm_overwrite() {
+	    local target_path="$1"
+	    
+	    if [ -e "$target_path" ] || [ -L "$target_path" ]; then
+	        local backup_name
+	        backup_name="$(basename "$target_path").bak_$(date +%Y%m%d_%H%M%S)"
+	        log "Backing up existing: $target_path → $backup_name"
+	        mv "$target_path" "${target_path}_${backup_name}" 2>/dev/null || {
+	            warn "Could not backup $target_path"
+	            return 1
+	        }
+	    fi
+	    return 0
+	}
+	
+	# Sync EVERYTHING recursively using find
+	log "Syncing ALL configuration items recursively..."
+	find "$configs_dir" -mindepth 1 -print0 | while IFS= read -r -d '' item; do
+	    # Calculate relative path
+	    local relative_path="${item#$configs_dir/}"
+	    local target_path="$config_home/$relative_path"
+	    
+	    # Skip broken symlinks
+	    [ -L "$item" ] && [ ! -e "$item" ] && continue
+	    
+	    log "Processing: $relative_path"
+	    
+	    if confirm_overwrite "$target_path"; then
+	        mkdir -p "$(dirname "$target_path")"
+	        if ln -sf "$(realpath "$item")" "$target_path" 2>/dev/null; then
+	            log "  ✓ Linked: $relative_path → $target_path"
+	        else
+	            warn "  ✗ Failed to link: $relative_path"
+	        fi
+	    else
+	        warn "  ⊘ Skipped: $relative_path (backup failed)"
+	    fi
+	done
     
     # Special handling for specific configs
     log "Applying special configurations..."
