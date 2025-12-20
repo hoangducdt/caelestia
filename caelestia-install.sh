@@ -1,37 +1,46 @@
 #!/bin/bash
 
-# ================================================================================================
-# CAELESTIA INSTALLER - OPTIMIZED FOR CACHYOS
-# ================================================================================================
-# Target System: CachyOS + Hyprland + Caelestia dots file
-# Hardware: ROG STRIX B550-XE | Ryzen 7 5800X | RTX 3060 12GB
-# Optimizations: Conflict resolution, CachyOS-specific packages, performance tuning
-# ================================================================================================
-
 set -e
 
 # Colors
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly MAGENTA='\033[0;35m'
-readonly CYAN='\033[0;36m'
-readonly NC='\033[0m'
+readonly RED='\e[38;2;255;0;0m'        # Đỏ thuần
+readonly GREEN='\e[38;2;0;255;0m'      # Xanh lá thuần
+readonly YELLOW='\e[38;2;255;255;0m'   # Vàng thuần
+readonly MAGENTA='\e[38;2;234;0;255m'  # Hồng tím
+readonly CYAN='\e[38;2;0;255;255m'    # Xanh lơ
+readonly NC='\e[0m'                    # Reset màu
 
-readonly LOG="$HOME/setup_complete_$(date +%Y%m%d_%H%M%S).log"
+LOG_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+readonly LOG="$HOME/setup_complete_${LOG_TIMESTAMP}.log"
 readonly STATE_DIR="$HOME/.cache/caelestia-setup"
 readonly STATE_FILE="$STATE_DIR/setup_state.json"
-readonly BACKUP_DIR="$HOME/Documents/caelestia-configs-$(date +%Y%m%d_%H%M%S)"
+readonly BACKUP_DIR="$HOME/Documents/caelestia-configs-${BACKUP_TIMESTAMP}"
 
-LOG_FILE="$HOME/caelestia_install_$(date +%Y%m%d_%H%M%S).log"
+# Define functions before use
+log() {
+    echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
+}
 
-log() { echo -e "${GREEN}▶${NC} $1" | tee -a "$LOG_FILE"; }
-error() { echo -e "${RED}✗${NC} $1" | tee -a "$LOG_FILE"; exit 1; }
-warning() { echo -e "${YELLOW}⚠${NC} $1" | tee -a "$LOG_FILE"; }
-ai_info() { echo -e "${MAGENTA}[AI/ML]${NC} $1" | tee -a "$LOG_FILE"; }
-creative_info() { echo -e "${CYAN}[CREATIVE]${NC} $1" | tee -a "$LOG_FILE"; }
+warn() {
+    echo -e "${YELLOW}⚠ [$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
+}
 
+error() {
+    echo -e "${RED}✗ [$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
+    echo -e "${YELLOW}See log: $LOG${NC}"
+    exit 1
+}
+
+ai_info() {
+    echo -e "${MAGENTA}[AI/ML]${NC} $1" | tee -a "$LOG"
+}
+
+creative_info() {
+    echo -e "${CYAN}[CREATIVE]${NC} $1" | tee -a "$LOG"
+}
+
+# Check sudo
 if ! sudo -v; then
     error "Không có quyền sudo. Thoát."
 fi
@@ -46,7 +55,7 @@ fi
 ) &
 SUDO_REFRESH_PID=$!
 
-trap "kill $SUDO_REFRESH_PID 2>/dev/null" EXIT
+trap 'kill $SUDO_REFRESH_PID 2>/dev/null' EXIT
 
 # Create directories
 mkdir -p "$STATE_DIR" "$BACKUP_DIR"
@@ -68,8 +77,8 @@ EOF
 }
 
 clone_repo(){
-    git clone https://github.com/hoangducdt/caelestia.git $HOME/.local/share/caelestia
-    cd $HOME/.local/share/caelestia/
+    git clone https://github.com/hoangducdt/caelestia.git "$HOME/.local/share/caelestia"
+    cd "$HOME/.local/share/caelestia/" || error "Failed to cd"
 }
 
 mark_completed() {
@@ -118,36 +127,13 @@ show_banner() {
 │   ███    ███    ▀██████▀   ▀████████▄ ███    ███  ▀████████  ▄█████████▀   ▀█████▀   ▀██████▀  │
 │                                                        ▄███                                    │
 │                                                 ▄████████▀                                     │
-│   COMPLETE INSTALLER - Safe Gaming Optimizations                                               │
-│                        ROG STRIX B550-XE │ Ryzen 7 5800X │ RTX 3060 12GB                       │
+│   Caelestia Installer - Optimized For CachyOS                                                  │
+│   • Target System: CachyOS + Hyprland + Caelestia                                              │
+│   • Hardware: ROG STRIX B550-XE GAMING WIFI | Ryzen 7 5800X | RTX 3060 12GB                    │
+│   • Optimizations: Performance adjustments, Vietnamese input methods...                        │
 ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
 EOF
     echo -e "${NC}"
-}
-
-
-# ===== LOGGING =====
-
-log() { 
-    echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
-}
-
-warn() { 
-    echo -e "${YELLOW}⚠ [$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
-}
-
-error() {
-    echo -e "${RED}✗ [$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
-    echo -e "${YELLOW}See log: $LOG${NC}"
-    exit 1
-}
-
-ai_info() { 
-    echo -e "${MAGENTA}[AI/ML]${NC} $1" | tee -a "$LOG"
-}
-
-creative_info() { 
-    echo -e "${CYAN}[CREATIVE]${NC} $1" | tee -a "$LOG"
 }
 
 # ===== PACKAGE MANAGEMENT =====
@@ -174,7 +160,8 @@ safe_remove_package() {
     log "Removing conflicting package: $pkg"
     
     # Check dependencies
-    local deps=$(pactree -r "$pkg" 2>/dev/null | tail -n +2 | wc -l)
+    local deps
+    deps=$(pactree -r "$pkg" 2>/dev/null | tail -n +2 | wc -l)
     if [ "$deps" -gt 0 ]; then
         warn "$pkg has $deps dependent packages"
     fi
@@ -265,7 +252,8 @@ install_packages() {
 
 backup_file() {
     local file="$1"
-    local backup_path="$BACKUP_DIR/$(basename "$file").backup"
+    local backup_path
+    backup_path="$BACKUP_DIR/$(basename "$file").backup"
     
     if [ -f "$file" ]; then
         cp "$file" "$backup_path" 2>/dev/null || warn "Failed to backup $file"
@@ -275,7 +263,8 @@ backup_file() {
 
 backup_dir() {
     local dir="$1"
-    local backup_path="$BACKUP_DIR/$(basename "$dir")"
+    local backup_path
+    backup_path="$BACKUP_DIR/$(basename "$dir")"
     
     if [ -d "$dir" ]; then
         cp -r "$dir" "$backup_path" 2>/dev/null || warn "Failed to backup $dir"
@@ -284,44 +273,6 @@ backup_dir() {
 }
 
 # ===== SETUP FUNCTIONS =====
-
-setup_nvidia_cleanup() {
-    if [ "$(is_completed 'nvidia_cleanup')" = "yes" ]; then
-        log "✓ NVIDIA cleanup already done"
-        return 0
-    fi
-    
-    log "Checking for NVIDIA driver conflicts..."
-    
-    # Only remove packages that ACTUALLY conflict
-    # DO NOT remove nvidia-utils or other main packages that might already be installed correctly
-    local conflict_pkgs=(
-        "nvidia-open"                        # Open vs proprietary conflict
-        "lib32-nvidia-open"                  
-        "nvidia-open-dkms"                   
-        "linux-cachyos-nvidia-open"          # Kernel-specific open drivers
-        "linux-cachyos-lts-nvidia-open"     
-    )
-    
-    local found_conflicts=false
-    for pkg in "${conflict_pkgs[@]}"; do
-        if pacman -Qi "$pkg" &>/dev/null; then
-            log "Removing conflicting package: $pkg"
-            safe_remove_package "$pkg"
-            found_conflicts=true
-        fi
-    done
-    
-    if [ "$found_conflicts" = false ]; then
-        log "✓ No conflicts found"
-    else
-        log "✓ Conflicts resolved"
-        sudo pacman -Sc --noconfirm 2>/dev/null || true
-    fi
-    
-    mark_completed "nvidia_cleanup"
-    log "✓ NVIDIA cleanup done"
-}
 
 setup_system_update() {
     if [ "$(is_completed 'system_update')" = "yes" ]; then
@@ -355,20 +306,20 @@ setup_system_update() {
     mark_completed "system_update"
 }
 
-setup_nvidia_drivers() {
-    if [ "$(is_completed 'nvidia_drivers')" = "yes" ]; then
-        log "✓ NVIDIA drivers already installed"
+setup_nvidia_optimization() {
+    if [ "$(is_completed 'nvidia_optimization')" = "yes" ]; then
+        log "✓ NVIDIA optimization already applied"
         return 0
     fi
     
     log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    log "NVIDIA DRIVER INSTALLATION (CachyOS Official Method)"
+    log "NVIDIA OPTIMIZATION (Config Only - No Driver Changes)"
     log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    # Check if NVIDIA GPU exists
+    # Check GPU
     if ! lspci | grep -i nvidia &>/dev/null; then
-        log "⊘ No NVIDIA GPU detected, skipping driver installation"
-        mark_completed "nvidia_drivers"
+        log "⊘ No NVIDIA GPU, skipping"
+        mark_completed "nvidia_optimization"
         return 0
     fi
     
@@ -376,110 +327,75 @@ setup_nvidia_drivers() {
     lspci | grep -i nvidia | head -1
     echo ""
     
-    # Check if chwd is available
-    if ! command -v chwd &>/dev/null; then
-        log "Installing chwd (CachyOS Hardware Detection Tool)..."
-        sudo pacman -S --needed --noconfirm chwd chwd-db
+    # Verify driver installed
+    log "Checking driver status..."
+    
+    if ! pacman -Qi nvidia-utils &>/dev/null; then
+        error << "EROR"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NVIDIA driver NOT found!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Please install via CachyOS installer or manually:
+  sudo pacman -S linux-cachyos-nvidia-open
+EROR
     fi
     
-    log "Checking currently installed NVIDIA profiles..."
-    chwd --list-installed | grep -i nvidia || log "No NVIDIA profile currently installed"
+    log "✓ Driver found:"
+    pacman -Q | grep -E '^(linux-cachyos-nvidia|nvidia-utils|lib32-nvidia)' | sed 's/^/  • /'
     echo ""
     
-    log "Available NVIDIA driver profiles:"
-    chwd --list | grep -i nvidia
-    echo ""
+    # Backup
+    [ -f "/etc/mkinitcpio.conf" ] && backup_file "/etc/mkinitcpio.conf"
+    [ -f "/etc/modprobe.d/nvidia.conf" ] && backup_file "/etc/modprobe.d/nvidia.conf"
     
-    # Backup configs
-    backup_file "/etc/mkinitcpio.conf"
-    backup_file "/etc/modprobe.d/nvidia.conf"
+    log "Applying optimizations..."
     
-    log "Installing NVIDIA drivers using chwd (official CachyOS method)..."
-    log "This will automatically:"
-    log "  • Install the correct driver version (latest stable)"
-    log "  • Configure mkinitcpio properly"
-    log "  • Set up CUDA support"
-    log "  • Enable Wayland/Hyprland compatibility"
-    log ""
-    
-    # Use chwd to automatically install the correct NVIDIA profile
-    # -a = autoconfigure (installs all detected hardware)
-    if sudo chwd -a pci 2>&1 | tee -a "$LOG"; then
-        log "✓ chwd installation successful"
-    else
-        warn "chwd automatic installation had issues, trying manual profile selection..."
-        
-        # Fallback: Try to install the main nvidia profile manually
-        if sudo chwd -i pci video-nvidia 2>&1 | tee -a "$LOG"; then
-            log "✓ Manual NVIDIA profile installation successful"
-        else
-            error "Failed to install NVIDIA drivers. Check logs at: $LOG"
-            return 1
-        fi
-    fi
-    
-    log "Verifying installation..."
-    chwd --list-installed | grep -i nvidia
-    
-    # Additional optimizations for RTX 3060 (Gaming/AI/Blender/UE5)
-    log "Applying RTX 3060 optimizations..."
-    
-    # Check if nvidia.conf exists, if not create it
-    if [ ! -f /etc/modprobe.d/nvidia.conf ]; then
-        sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<'EOF'
-# NVIDIA RTX 3060 12GB Optimization
-# Optimized for: Gaming, AI/ML, Blender, DaVinci Resolve, UE5
+    # 1. Modprobe
+    sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<'EOF'
+# NVIDIA RTX 3060 Optimization
 options nvidia_drm modeset=1 fbdev=1
 options nvidia NVreg_PreserveVideoMemoryAllocations=1
 options nvidia NVreg_UsePageAttributeTable=1
-
-# Power management for desktop (always max performance)
 options nvidia NVreg_DynamicPowerManagement=0x02
-
-# Disable GSP firmware (better compatibility with older apps)
 options nvidia NVreg_EnableGpuFirmware=0
 EOF
-        log "✓ Created NVIDIA modprobe configuration"
-    else
-        log "✓ NVIDIA modprobe configuration already exists (managed by chwd)"
+    log "✓ Modprobe config"
+    
+    # 2. Mkinitcpio
+    if grep -q "^MODULES=" /etc/mkinitcpio.conf; then
+        if ! grep -q "nvidia" /etc/mkinitcpio.conf; then
+            sudo sed -i 's/^MODULES=(\(.*\))/MODULES=(\1 nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
+            sudo mkinitcpio -P
+            log "✓ Mkinitcpio updated & rebuilt"
+        else
+            log "✓ Mkinitcpio already configured"
+        fi
     fi
     
-    # Enable NVIDIA services if they exist
-    for service in nvidia-suspend nvidia-hibernate nvidia-resume nvidia-powerd; do
-        if systemctl list-unit-files | grep -q "${service}.service"; then
-            sudo systemctl enable "${service}.service" 2>/dev/null || true
+    # 3. Services
+    for svc in nvidia-suspend nvidia-hibernate nvidia-resume; do
+        if systemctl list-unit-files | grep -q "${svc}.service"; then
+            sudo systemctl enable "${svc}.service" 2>/dev/null || true
         fi
     done
+    log "✓ Services enabled"
     
-    log "Checking CUDA installation..."
-    if pacman -Qi cuda &>/dev/null; then
-        CUDA_VERSION=$(pacman -Q cuda | awk '{print $2}')
-        log "✓ CUDA already installed: $CUDA_VERSION"
-    else
-        log "Installing CUDA for AI/ML workloads..."
-        sudo pacman -S --needed --noconfirm cuda cudnn
-    fi
-    
-    mark_completed "nvidia_drivers"
+    mark_completed "nvidia_optimization"
     
     echo ""
     log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    log "✓ NVIDIA DRIVERS INSTALLED SUCCESSFULLY!"
+    log "✓ OPTIMIZATION COMPLETE!"
     log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     log ""
-    log "Installed components:"
-    pacman -Q | grep -E 'nvidia|cuda' | sed 's/^/  • /'
+    log "Applied:"
+    log "  • Modprobe parameters"
+    log "  • Early boot modules"
+    log "  • Power management"
+    log "  • NO driver changes (safe!)"
     log ""
-    log "Features enabled:"
-    log "  ✓ Gaming optimizations"
-    log "  ✓ CUDA for AI/ML workloads"
-    log "  ✓ Wayland/Hyprland support"
-    log "  ✓ Hardware acceleration for video editing"
-    log "  ✓ Blender CUDA rendering"
-    log "  ✓ Unreal Engine 5 support"
-    log ""
-    warn "⚠️  REBOOT REQUIRED to load NVIDIA drivers!"
-    log ""
+    warn "⚠️  Reboot to apply changes"
+    log "   Verify: nvidia-smi"
 }
 
 setup_meta_packages() {
@@ -489,10 +405,8 @@ setup_meta_packages() {
     fi
     
     log "Installing base packages (CachyOS optimized)..."
-	
-    # CachyOS optimized packages (prefer cachyos- prefixed packages)
     local meta_pkgs=(
-		#####
+		#Caelestia
 		"caelestia-cli"
 		"caelestia-shell"
 		"hyprland"
@@ -512,7 +426,6 @@ setup_meta_packages() {
 		"uwsm"
 		"direnv"
 		
-	
         # System essentials
 		"fish"
 		"kitty"
@@ -590,6 +503,10 @@ setup_meta_packages() {
 		"cuda"
 		"cudnn"
 		"python-pytorch-cuda"
+		"python-torchvision-cuda"
+		"python-torchaudio-cuda"
+		"python-transformers"
+		"python-accelerate"
 		
 		# Audio
         "pipewire"
@@ -867,15 +784,7 @@ setup_ai_ml() {
     
     ai_info "Installing AI/ML stack (CUDA + PyTorch for RTX 3060)..."
     
-    # Install PyTorch with CUDA support via pip
-    ai_info "Installing PyTorch with CUDA 12 support..."
-    #pip install --user torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-    
-    # Install additional ML tools
-    ai_info "Installing additional ML tools..."
-    #pip install --user transformers accelerate diffusers invisible-watermark
-	
-	sudo systemctl enable --now ollama.service 2>/dev/null || true
+    sudo systemctl enable --now ollama.service 2>/dev/null || true
     
     mark_completed "ai_ml"
     ai_info "✓ AI/ML stack installed"
@@ -1007,7 +916,7 @@ setup_directories() {
     fi
     
     # Thêm bookmarks
-    cat >> $HOME/.config/gtk-3.0/bookmarks <<EOF
+    cat >> "$HOME/.config/gtk-3.0/bookmarks" <<EOF
 file://$HOME/Downloads
 file://$HOME/Documents
 file://$HOME/Pictures
@@ -1036,7 +945,6 @@ setup_configs() {
     # Check if Configs directory exists
     if [ ! -d "$configs_dir" ]; then
         error "Configs directory not found at: $configs_dir"
-        return 1
     fi
     
     # Function to confirm overwrite (similar to install.fish)
@@ -1045,7 +953,8 @@ setup_configs() {
         
         if [ -e "$target_path" ] || [ -L "$target_path" ]; then
             # Backup existing config
-            local backup_name="$(basename "$target_path").bak_$(date +%Y%m%d_%H%M%S)"
+            local backup_name
+            backup_name="$(basename "$target_path").bak_$(date +%Y%m%d_%H%M%S)"
             log "Backing up existing: $target_path → $backup_name"
             mv "$target_path" "${target_path}_${backup_name}" 2>/dev/null || {
                 warn "Could not backup $target_path"
@@ -1055,7 +964,7 @@ setup_configs() {
         return 0
     }
     
-    # Sync all directories from Configs/ to ~/.config/
+    # Sync all directories from Configs/ to ~/
     log "Syncing configuration directories..."
     
     # Find all directories in Configs/ (one level deep)
@@ -1064,7 +973,8 @@ setup_configs() {
             continue
         fi
         
-        local item_name=$(basename "$config_item")
+        local item_name
+        item_name=$(basename "$config_item")
         local target_path="$config_home/$item_name"
         
         log "Processing: $item_name"
@@ -1151,7 +1061,8 @@ setup_configs() {
     log "Configuring static IP address..."
     
     # Get the primary network interface
-    local primary_interface=$(ip route | grep default | awk '{print $5}' | head -n1)
+    local primary_interface
+    primary_interface=$(ip route | grep default | awk '{print $5}' | head -n1)
     
     if [ -n "$primary_interface" ]; then
         log "Detected primary interface: $primary_interface"
@@ -1199,9 +1110,8 @@ main() {
     install_helper
     clone_repo
     # Execute all setup functions
-    #setup_nvidia_cleanup
-    #setup_system_update
-    #setup_nvidia_drivers
+    setup_system_update
+    setup_nvidia_optimization
     setup_meta_packages
     setup_gaming
     setup_development

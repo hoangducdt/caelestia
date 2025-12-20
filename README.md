@@ -1,642 +1,992 @@
-# CachyOS/Hyprland/Caelestia Auto Setup - Complete Creative Workstation
+# Caelestia Installer - CachyOS Complete Workstation Setup
 
-**Thiết lập một lệnh** hoàn chỉnh cho hệ thống chơi game, phát triển phần mềm, làm việc với AI/ML, **và sáng tạo nội dung 3D/2D** trên CachyOS.
+**Thiết lập tự động hoàn chỉnh** cho hệ thống CachyOS với Hyprland, tối ưu cho gaming, phát triển phần mềm, AI/ML, và sáng tạo nội dung 3D/2D.
 
 ## 🖥️ Cấu Hình Phần Cứng Mục Tiêu
 
 - **Bo mạch chủ**: ASUS ROG STRIX B550-XE GAMING WIFI
-- **CPU**: AMD Ryzen 7 5800X (8 Nhân / 16 Luồng)
+- **CPU**: AMD Ryzen 7 5800X (8 cores / 16 threads)
 - **GPU**: NVIDIA GeForce RTX 3060 12GB
-- **RAM**: 32GB DDR4
-- **Hệ điều hành**: CachyOS (nền tảng Arch)
+- **RAM**: 32GB DDR4 (khuyến nghị)
+- **Hệ điều hành**: CachyOS (Arch-based)
 
 ---
 
-## 🚀 Cài Đặt Nhanh
+## 🚀 Cài Đặt
+
+### Yêu Cầu Trước Khi Cài
+- CachyOS đã được cài đặt
+- Kết nối internet ổn định
+- Quyền sudo
 
 ### Cài đặt bằng một dòng lệnh (Khuyến nghị)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hoangducdt/caelestia/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hoangducdt/caelestia/main/caelestia-install.sh | bash
 ```
 
 ### Cài đặt thủ công
 ```bash
 git clone https://github.com/hoangducdt/caelestia.git
 cd caelestia
-chmod +x setup.sh
-./setup.sh
+chmod +x caelestia-install.sh
+./caelestia-install.sh
 ```
 
-⏱️ **Thời gian cài đặt**: 30-60 phút tùy tốc độ mạng
+### Tính Năng Script
+- ✅ **State Management**: Tự động lưu tiến trình, có thể tiếp tục nếu bị gián đoạn
+- ✅ **Auto Backup**: Sao lưu các file cấu hình quan trọng
+- ✅ **Conflict Resolution**: Tự động xử lý xung đột gói
+- ✅ **Retry Mechanism**: Tự động thử lại khi cài đặt thất bại
+- ✅ **Comprehensive Logging**: Log chi tiết tại `~/setup_complete_*.log`
+
+⏱️ **Thời gian cài đặt**: 30-90 phút (tùy thuộc vào tốc độ mạng)
 
 ---
 
-## ✨ Tổng Quan Tính Năng
+## 📦 Các Thành Phần Được Cài Đặt
 
-### 🎮 Chơi Game
-- **Môi trường Desktop**: Hyprland Caelestia (Trình tổng hợp Wayland)
-- **Driver**: NVIDIA độc quyền với hỗ trợ CUDA
-- **Công cụ Game**: Steam, Lutris, Wine, Proton-GE, GameMode, MangoHud
-- **Hiệu năng**: Gói `cachyos-gaming-meta`
-- **Tối ưu hóa**: CPU governor, I/O scheduler, điều chỉnh mạng
+### 1. System Update & Base Setup
+- Cập nhật hệ thống với CachyOS keyrings
+- Cài đặt các công cụ cơ bản: `yay`, `base-devel`, `git`, `wget`, `curl`
 
-### 💻 Môi Trường Phát Triển
-- **.NET**: SDK, Runtime, ASP.NET Core
-- **C++/C#**: Mono, MSBuild, JetBrains Rider
-- **Trình soạn thảo**: VS Code, Neovim
-- **Công cụ**: Docker, Docker Compose, Git, GitHub CLI
+### 2. NVIDIA Optimization (Chỉ Cấu Hình - Không Thay Đổi Driver)
+**Điều quan trọng**: Script chỉ tối ưu hóa cấu hình, **KHÔNG cài đặt driver NVIDIA**. Driver phải được cài qua CachyOS installer hoặc thủ công.
 
-### 🎬 Hỗ Trợ Unreal Engine 5
-- **Phụ thuộc**: Vulkan, libicu, clang, cmake, ninja
-- **Thư viện Runtime**: OpenAL, SDL2, FFmpeg, GStreamer + hơn 40 gói
-- **Tính năng**: Sẵn sàng cho Nanite, Lumen, Ray Tracing
-- **Tích hợp**: Thiết lập VS Code, các script hỗ trợ
+**Tối ưu hóa được áp dụng**:
+```bash
+# Modprobe configuration
+- nvidia_drm modeset=1 fbdev=1
+- NVreg_PreserveVideoMemoryAllocations=1
+- NVreg_UsePageAttributeTable=1
+- NVreg_DynamicPowerManagement=0x02
+- NVreg_EnableGpuFirmware=0
 
-### 🤖 AI/ML (cho RTX 3060 12GB)
-- **CUDA**: Bộ công cụ đầy đủ + cuDNN
-- **Framework**: PyTorch (CUDA), TensorFlow (GPU)
-- **LLM**: Ollama (Llama, Mistral, CodeLlama)
-- **Tạo ảnh**: Stable Diffusion WebUI (AUTOMATIC1111)
-- **Tạo văn bản**: Text Generation WebUI (Oobabooga)
-- **Quy trình làm việc**: Giao diện dạng nút ComfyUI
-- **Công cụ**: Jan, Koboldcpp, Jupyter Notebook
+# Mkinitcpio modules
+- nvidia, nvidia_modeset, nvidia_uvm, nvidia_drm
 
-### 🎨 **Creative Suite**
-#### Blender (3D Creation)
-- **Tối ưu GPU**: CUDA/OptiX cho RTX 3060
-- **Render Engine**: Cycles với OptiX ray tracing
-- **Denoising**: OptiX AI denoiser
-- **Hiệu năng**: Viewport rendering tối ưu cho 12GB VRAM
-- **Scripts**: `blender-gpu`, `blender-render`, `blender-setup-gpu`
-
-#### Adobe Creative Cloud Alternatives
-- **GIMP** (Thay thế Photoshop): Chỉnh sửa ảnh chuyên nghiệp
-- **Krita** (Digital Painting): Vẽ kỹ thuật số và concept art
-- **Inkscape** (Thay thế Illustrator): Thiết kế vector
-- **Kdenlive** (Thay thế Premiere Pro): Chỉnh sửa video
-- **DaVinci Resolve** (Tùy chọn): Chỉnh sửa video chuyên nghiệp
-- **Darktable** (Thay thế Lightroom): Xử lý RAW photos
-- **RawTherapee**: Chỉnh sửa RAW nâng cao
-- **Scribus** (Thay thế InDesign): Desktop publishing
-- **Audacity**: Chỉnh sửa audio
-- **Ardour**: Digital Audio Workstation (DAW)
-- **Natron** (Thay thế After Effects): Compositing và VFX
-
-### 🎥 Phát Trực Tuyến & Ghi Hình
-- **OBS Studio**: Mã hóa phần cứng NVIDIA NVENC
-- **Camera ảo**: Bật `v4l2loopback`
-- **Plugin**: obs-vkcapture, obs-websocket, nguồn trình duyệt
-- **Âm thanh**: Backend độ trễ thấp PipeWire
-- **Bộ giải mã**: x264, x265, FFmpeg với VA-API
-- **Transcoding**: GPU-accelerated với NVENC
-
-### 💬 Giao Tiếp
-- **Vesktop/Vencord**: Ứng dụng Discord được nâng cao
-- **Tính năng**: Hỗ trợ Wayland, hiệu năng tốt hơn, chủ đề tùy chỉnh
-- **Chia sẻ màn hình**: Hoạt động hoàn hảo trên Wayland
-
-### 🖥️ Hỗ Trợ Phần Cứng (ROG STRIX B550-XE)
-- **Chipset**: AMD B550 với hỗ trợ driver đầy đủ
-- **Âm thanh**: Realtek ALC4080 SupremeFX
-- **Mạng**: Dual Ethernet 2.5G (Intel I225-V + Realtek RTL8125B)
-- **WiFi**: Intel AX210 WiFi 6E (2.4/5/6GHz)
-- **Bluetooth**: 5.2 với blueman
-- **RGB**: OpenRGB với hỗ trợ ASUS Aura Sync
-
-### ⌨️ Nhập Liệu & Hiển Thị
-- **Tiếng Việt**: Fcitx5 + Bộ gõ Bamboo
-- **Đa màn hình**: Tự động phát hiện với công cụ GUI
-- **Màn hình đăng nhập**: SDDM với chủ đề Sugar Candy
-
----
-
-## 📦 Danh Sách Gói Đầy Đủ
-
-### Hệ Thống Cơ Bản
-```
-yay, gnome-keyring, polkit-gnome, nautilus
-microsoft-edge, github-desktop
+# Power management services
+- nvidia-suspend.service
+- nvidia-hibernate.service
+- nvidia-resume.service
 ```
 
-### Môi Trường Desktop
+### 3. Caelestia Configurations
+**Desktop Environment**: Hyprland + Caelestia configs từ repository
+
+**Config Files được cài đặt**:
+- Symbolic links từ `~/.local/share/caelestia/Configs/*` → `~/.config/*`
+- Auto backup configs cũ với timestamp
+- Hyprland scripts với quyền thực thi
+- Fastfetch với logo tùy chỉnh
+- Kitty terminal configuration
+- GTK-3.0 themes và bookmarks
+
+### 4. Meta Packages (180+ gói)
+
+#### Caelestia Core
 ```
-Hyprland Caelestia (bộ đầy đủ)
-SDDM + chủ đề Sugar Candy
+caelestia-cli, caelestia-shell, hyprland
+xdg-desktop-portal-gtk, xdg-desktop-portal-hyprland
+hyprpicker, cliphist, inotify-tools
+app2unit, trash-cli, eza, jq
+adw-gtk-theme, papirus-icon-theme
+qt5ct-kde, qt6ct-kde
+todoist-appimage, uwsm, direnv
 ```
 
-### Game & Phát Triển
+#### System Essentials
 ```
-# NVIDIA
-nvidia-dkms, nvidia-utils, lib32-nvidia-utils
-opencl-nvidia, libva-nvidia-driver
-
-# Game
-cachyos-gaming-meta, cachyos-gaming-applications
-steam, lutris, wine, gamemode, mangohud
-
-# Phát triển
-dotnet-sdk, mono, rider, code, docker
+fish, kitty, wl-clipboard
+qt5-wayland, qt6-wayland
+gnome-keyring, polkit-gnome
+thunar, tumbler, ffmpegthumbnailer, libgsf
 ```
 
-### **Blender & Creative Suite**
+#### File Systems & Compression
 ```
-# 3D & Animation
-blender, openimagedenoise, opencolorio
-opensubdiv, openvdb, embree, openimageio
+btrfs-progs, exfatprogs, ntfs-3g, dosfstools
+zip, unzip, p7zip, unrar, rsync, tmux
+```
 
-# Image Editing
-gimp, gimp-plugin-gmic, krita, darktable, rawtherapee
+#### Shell Tools
+```
+starship, eza, bat, ripgrep, fd, fzf, zoxide
+```
 
-# Vector & Design
-inkscape, scribus
+#### Monitoring Tools
+```
+htop, btop, neofetch, fastfetch
+nvtop, amdgpu_top, iotop, iftop
+```
 
-# Video Editing
-kdenlive, frei0r-plugins, davinci-resolve
+#### Disk Management
+```
+gparted, gnome-disk-utility
+```
 
-# Audio
+#### PDF Tools
+```
+zathura, zathura-pdf-poppler
+```
+
+#### Network
+```
+networkmanager, network-manager-applet
+nm-connection-editor
+```
+
+### 5. Python & AI/ML Stack
+
+#### Python Essentials
+```
+python, python-pip, python-virtualenv
+python-numpy, python-pandas
+jupyter-notebook, python-scikit-learn
+python-matplotlib, python-pillow, python-scipy
+```
+
+#### CUDA & Deep Learning
+```
+cuda, cudnn
+python-pytorch-cuda
+python-torchvision-cuda
+python-torchaudio-cuda
+python-transformers, python-accelerate
+```
+
+#### AI Tools
+```
+ollama-cuda
+```
+
+### 6. Audio Stack
+```
+pipewire, pipewire-pulse, pipewire-alsa, pipewire-jack
+wireplumber, pavucontrol, helvum
+v4l2loopback-dkms
+gstreamer-vaapi
+noise-suppression-for-voice
+```
+
+### 7. Multimedia
+
+#### Video Players
+```
+mpv, vlc
+```
+
+#### Image Viewers/Editors
+```
+imv, gimp, inkscape
+```
+
+#### Audio Production
+```
 audacity, ardour
-
-# Compositing
-natron
-
-# Supporting Tools
-imagemagick, graphicsmagick, potrace, fontforge
 ```
 
-### Unreal Engine 5
+#### Video Editing
 ```
-# Lõi
-vulkan-devel, clang, cmake, libicu
-
-# Runtime (tổng 53 gói)
-openal, sdl2, ffmpeg, gstreamer
-libxcursor, libxi, libxrandr
-freetype2, fontconfig, harfbuzz
-curl, openssl, zlib, bzip2, xz, zstd
-+ tất cả các biến thể lib32-*
+kdenlive, obs-studio
 ```
 
-### AI/ML
+#### Codecs & Multimedia Libraries
 ```
-# CUDA
-cuda, cudnn, python-pytorch-cuda
-
-# Python
-python, pip, virtualenv, numpy, pandas
-jupyter-notebook, scikit-learn
-
-# Công cụ AI
-ollama-cuda, jan-bin, koboldcpp-cuda
-```
-
-### Công Cụ Streaming
-```
-# OBS
-obs-studio, obs-vkcapture, obs-websocket
-v4l2loopback-dkms, pipewire
-
-# Discord
-vesktop-bin (Vencord)
-
-# Bộ giải mã
-ffmpeg, x264, x265, gstreamer-vaapi
+gst-plugins-good, gst-plugins-bad
+gst-plugins-ugly, gst-libav
+ffmpeg, lib32-ffmpeg
+gstreamer, gst-plugins-base
+libvorbis, lib32-libvorbis
+opus, lib32-opus
+flac, lib32-flac
+x264, x265
 ```
 
----
-
-## 🎯 Hiệu Năng & Tối Ưu Hóa
-
-### CPU (Ryzen 7 5800X)
-```bash
-# Governor: Hiệu suất (Performance)
-tần_số_tối_thiểu: 800MHz
-tần_số_tối_đa: 4.7GHz (boost)
-
-# Hiệu năng dự kiến
-Single-core: 4.7 GHz
-All-core: 4.4-4.5 GHz duy trì
-Nhiệt độ: 70-80°C khi chơi game, 40-50°C khi nhàn rỗi
-Công suất: 105W TDP, 142W PPT
+#### Hardware Acceleration
+```
+libva-nvidia-driver
 ```
 
-### GPU (RTX 3060 12GB)
-```bash
-# Bật CUDA/OptiX cho Blender
-# NVENC mã hóa phần cứng cho video
-# Quản lý năng lượng được tối ưu
+### 8. Development Tools
 
-# Hiệu năng dự kiến
-Boost: 1777 MHz
-Bộ nhớ: 12GB GDDR6 @ 15 Gbps
-Nhiệt độ: 60-75°C khi render/game, 30-40°C khi nhàn rỗi
-Công suất: 170W TDP
-
-# Khả năng tính toán CUDA: 8.6
-# Tensor Cores: Có (tăng tốc AI + OptiX denoising)
-# RT Cores: Gen 2 (Ray tracing)
+#### Code Editors
+```
+neovim, codium (VS Code alternative)
 ```
 
-### **Blender Rendering Performance (RTX 3060 12GB)**
-```bash
-# Cycles OptiX Rendering
-Simple scene (1M polygons): ~2-5 minutes
-Complex scene (10M+ polygons): ~10-30 minutes
-Animation (250 frames): ~2-8 hours (depending on complexity)
-
-# Recommended settings:
-Render engine: Cycles + OptiX
-Tile size: 256x256 or 512x512
-Samples: 512-2048 (with OptiX denoiser)
-Denoiser: OptiX (GPU accelerated)
-Viewport samples: 128-256
+#### Version Control
+```
+git, github-cli
 ```
 
----
-
-## 🎨 Blender & Creative Workflows
-
-### Blender Setup
-```bash
-# Khởi chạy Blender với GPU
-blender-gpu
-
-# Thiết lập GPU rendering
-blender-setup-gpu
-
-# Render project từ command line
-blender-render project.blend ./output 1 250
+#### Build Tools
+```
+cmake, ninja, meson
 ```
 
-### Blender Performance Tips
-1. **Enable OptiX**: Edit → Preferences → System → Cycles Render Devices → OptiX
-2. **Use GPU Memory Efficiently**:
-   - Tiết kiệm VRAM: 8-10GB cho viewport + rendering
-   - Dành 2-4GB cho hệ thống và ứng dụng khác
-3. **Optimize Viewport**:
-   - Samples: 128-256
-   - Simplify settings cho preview
-4. **Final Rendering**:
-   - Samples: 512-2048
-   - Enable OptiX denoiser
-   - Adaptive sampling ON
-
-### Creative Suite Commands
-```bash
-# Xem tất cả ứng dụng creative
-creative-apps
-
-# Image editing
-gimp                          # Photoshop alternative
-krita                         # Digital painting
-darktable                     # Lightroom alternative
-
-# Vector design
-inkscape                      # Illustrator alternative
-
-# Video editing
-kdenlive                      # Premiere alternative
-davinci-resolve              # Professional NLE (if installed)
-
-# Audio
-audacity                      # Audio editor
-ardour                        # Professional DAW
-
-# 3D
-blender-gpu                   # Optimized Blender
-
-# Batch operations
-batch-convert-images jpg png 95
-video-transcode input.mov output.mp4 fast
-gimp-batch-resize 1920 1080 *.jpg
+#### Compilers
+```
+gcc, clang
 ```
 
----
-
-## 🎮 Hiệu Năng Chơi Game
-
-### Game Linux Bản Địa
+#### Languages
 ```
-Độ phân giải: 1920x1080
-Chất lượng: Ultra/High
-FPS: 60-144 FPS (esports)
-      40-90 FPS (AAA)
+nodejs, npm, rust, go
 ```
 
-### Game Proton/Wine
+#### Containers
 ```
-Khả năng tương thích: 80%+ game hoạt động
-Hiệu năng: 90-95% so với Windows
-Công cụ: Proton-GE, Wine-GE, DXVK, VKD3D
+docker, docker-compose
 ```
 
----
-
-## 🤖 Khả Năng AI/ML (RTX 3060 12GB)
-
-### LLM (Tạo Văn Bản)
+#### Database
 ```
-✅ Llama 3.2 3B      - 3GB VRAM - Nhanh
-✅ Mistral 7B        - 4-5GB VRAM - Cân bằng
-✅ Llama 3.1 8B      - 5-6GB VRAM - Chất lượng cao
-✅ CodeLlama 7B      - 4-5GB VRAM - Lập trình
-⚠️ Mixtral 8x7B     - 6-8GB VRAM - lượng tử hóa 4-bit
+postgresql, redis
 ```
 
-### Tạo Ảnh
+#### API Testing
 ```
-✅ Stable Diffusion 1.5   - 512x512 - Nhanh
-✅ SDXL                   - 1024x1024 - Dùng --medvram
-✅ ControlNet             - Hoạt động tốt
-✅ Quy trình ComfyUI     - Pipeline phức tạp OK
+postman-bin
 ```
 
----
-
-## 🎥 Thiết Lập Streaming & Video Production
-
-### OBS NVENC Settings
-**Twitch 1080p60:**
+#### .NET Development
 ```
-Encoder: NVIDIA NVENC H.264
-Rate Control: CBR
-Bitrate: 6000 Kbps
-Preset: Quality
+dotnet-sdk, dotnet-runtime
+dotnet-sdk-9.0, dotnet-sdk-8.0
+aspnet-runtime
+mono, mono-msbuild
 ```
 
-### Video Transcoding với GPU
-```bash
-# Transcode với NVENC
-video-transcode input.mov output.mp4 fast
+### 9. Gaming Stack
 
-# FFmpeg NVENC command
-ffmpeg -hwaccel cuda -i input.mp4 \
-    -c:v h264_nvenc -preset fast -b:v 10M \
-    -c:a aac -b:a 192k output.mp4
+#### CachyOS Gaming Meta
+```
+cachyos-gaming-meta
+  ├─ alsa-plugins
+  ├─ giflib, lib32-giflib
+  ├─ glfw
+  ├─ gst-plugins-base-libs, lib32-gst-plugins-base-libs
+  ├─ gtk3, lib32-gtk3
+  ├─ libjpeg-turbo, lib32-libjpeg-turbo
+  ├─ libva, lib32-libva
+  ├─ mpg123, lib32-mpg123
+  ├─ ocl-icd, opencl-icd-loader, lib32-opencl-icd-loader
+  ├─ openal, lib32-openal
+  ├─ proton-cachyos-slr
+  ├─ umu-launcher
+  ├─ protontricks
+  ├─ ttf-liberation
+  ├─ wine-cachyos-opt
+  ├─ winetricks
+  └─ vulkan-tools
+
+cachyos-gaming-applications
+  ├─ gamescope
+  ├─ goverlay
+  ├─ heroic-games-launcher
+  ├─ lib32-mangohud, mangohud
+  ├─ lutris
+  ├─ steam
+  └─ wqy-zenhei
 ```
 
----
-
-## 🌈 Điều Khiển RGB
-
-### OpenRGB (ASUS Aura Sync)
-```bash
-# Khởi chạy điều khiển RGB
-rgb-control
-
-# Hiệu ứng được hỗ trợ
-Static, Breathing, Strobing, Cycling, Rainbow
+#### Additional Gaming Components
+```
+lib32-vulkan-icd-loader
+lib32-nvidia-utils
+vulkan-icd-loader
+gamemode, lib32-gamemode
+xpadneo-dkms (Xbox controller support)
+protonup-qt (Proton-GE manager)
 ```
 
----
+### 10. Blender & 3D Creation
 
-## 📝 Lệnh Nhanh
-
-### Hệ Thống
-```bash
-# Giám sát GPU
-nvidia-smi
-nvtop
-monitor-vram
-
-# Thông tin CPU
-cpupower frequency-info
-
-# Chế độ game
-game-mode-on
-game-mode-off
+#### Blender Core
+```
+blender
 ```
 
-### Creative Suite
-```bash
-# Xem ứng dụng
-creative-apps
-
-# Blender
-blender-gpu
-blender-setup-gpu
-blender-render project.blend ./output
-
-# Image tools
-batch-convert-images jpg png
-gimp-batch-resize 1920 1080 *.jpg
-
-# Video tools
-video-transcode input.mov output.mp4
+#### Blender Dependencies
+```
+openimagedenoise  # AI denoising
+opencolorio       # Color management
+opensubdiv        # Subdivision surfaces
+openvdb           # Volumetric data
+embree            # Ray tracing
+openimageio       # Image I/O
+alembic           # Animation exchange
+openjpeg2         # JPEG 2000
+openexr           # HDR images
+libspnav          # 3D mouse support
 ```
 
-### AI/ML
-```bash
-# Workspace overview
-ai-workspace
+### 11. Creative Suite
 
-# Kiểm tra CUDA
-check-ai-setup
+#### Image Editing
+```
+gimp, gimp-plugin-gmic
+krita              # Digital painting
+darktable          # RAW photo workflow
+rawtherapee        # Advanced RAW editing
+```
 
-# Tải LLM
-ollama-download-recommended
+#### Vector Graphics
+```
+inkscape
+```
 
-# Chạy Ollama
-ollama-start
+#### Video Editing
+```
+kdenlive
+frei0r-plugins
+mediainfo, mlt
+davinci-resolve
+natron             # Compositing/VFX
+```
 
-# Stable Diffusion
-sd-webui
+#### Audio Production
+```
+audacity, ardour   # Digital Audio Workstation
+```
 
-# Giám sát VRAM
-monitor-vram
+#### Publishing
+```
+scribus            # Desktop publishing
+```
+
+#### Supporting Tools
+```
+imagemagick, graphicsmagick
+potrace, fontforge
+```
+
+### 12. System Optimization
+
+#### Performance Tools
+```
+irqbalance         # IRQ load balancing
+cpupower           # CPU frequency scaling
+thermald           # Thermal management
+tlp                # Power management
+powertop           # Power analysis
+preload            # Application preloader
+```
+
+### 13. Display & Monitor Tools
+```
+wlr-randr, kanshi, nwg-displays
+```
+
+### 14. Professional Applications
+```
+microsoft-edge-stable-bin
+docker-desktop
+rider              # JetBrains C# IDE
+github-desktop
+lmstudio           # Local LLM interface
+```
+
+### 15. Streaming & Recording
+```
+obs-vaapi
+obs-nvfbc
+obs-vkcapture
+obs-websocket
+```
+
+### 16. Communication
+```
+vesktop-bin        # Discord with Vencord
+```
+
+### 17. Hardware Control
+```
+openrgb            # RGB lighting control
+```
+
+### 18. Vietnamese Input Method
+```
+fcitx5
+fcitx5-qt, fcitx5-gtk
+fcitx5-configtool
+fcitx5-bamboo-git
+```
+
+### 19. Display Manager
+```
+gdm, gdm-settings
+```
+
+### 20. Fonts
+```
+ttf-jetbrains-mono-nerd
+adobe-source-code-pro-fonts
+ttf-liberation
+ttf-dejavu
 ```
 
 ---
 
-## 🔧 Các Bước Sau Khi Cài Đặt
+## ⚙️ System Configurations
 
-### 1. Khởi Động Lại
+### 1. Gaming Optimization
+- Multilib repository enabled (32-bit support)
+- User added to `gamemode` group
+- MangoHud configured for RTX 3060
+
+**MangoHud Config** (`~/.config/MangoHud/MangoHud.conf`):
+```
+legacy_layout=false
+horizontal
+gpu_stats, cpu_stats, ram, vram
+fps, frametime, frame_timing
+vulkan_driver, wine, engine_version
+gamemode
+```
+
+### 2. Development Setup
+- Docker service enabled
+- User added to `docker` group
+- Docker Compose ready
+
+### 3. Multimedia Configuration
+- Pipewire services enabled (user-level):
+  - pipewire.service
+  - pipewire-pulse.service
+  - wireplumber.service
+
+### 4. AI/ML Setup
+- Ollama service enabled and started
+- CUDA toolkit configured
+
+### 5. Streaming Configuration
+- v4l2loopback kernel module loaded
+- Module auto-loads on boot via `/etc/modules-load.d/v4l2loopback.conf`
+
+### 6. System Optimization (Ryzen 7 5800X)
+
+#### CPU Governor
+```bash
+# Performance mode for desktop
+cpupower frequency-set -g performance
+
+# Systemd service created:
+/etc/systemd/system/cpupower-performance.service
+```
+
+#### Services Enabled
+```bash
+irqbalance.service
+thermald.service
+tlp.service
+cpupower-performance.service
+```
+
+#### TLP Configuration
+```
+CPU_SCALING_GOVERNOR_ON_AC=performance
+CPU_ENERGY_PERF_POLICY_ON_AC=performance
+```
+
+#### Kernel Parameters (`/etc/sysctl.d/99-ryzen-optimization.conf`)
+```
+# Ryzen 7 5800X Optimizations
+vm.swappiness=10
+vm.vfs_cache_pressure=50
+vm.dirty_ratio=10
+vm.dirty_background_ratio=5
+
+# Network Performance
+net.core.default_qdisc=cake
+net.ipv4.tcp_congestion_control=bbr
+
+# File System
+fs.inotify.max_user_watches=524288
+```
+
+#### I/O Scheduler Rules (`/etc/udev/rules.d/60-ioschedulers.rules`)
+```
+# BFQ for HDD/SSD responsiveness
+ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/scheduler}="bfq"
+
+# None for NVMe (already optimal)
+ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"
+```
+
+### 7. DNS Configuration
+
+**Systemd-resolved** (`/etc/systemd/resolved.conf`):
+```
+DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 
+    2606:4700:4700::1111#cloudflare-dns.com 
+    2606:4700:4700::1001#cloudflare-dns.com
+
+FallbackDNS=9.9.9.9#dns.quad9.net 2620:fe::9#dns.quad9.net 
+            1.1.1.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 
+            8.8.8.8#dns.google 2001:4860:4860::8888#dns.google
+
+DNSOverTLS=yes
+```
+
+### 8. Static IP Configuration
+
+**NetworkManager Profile** (`/etc/NetworkManager/system-connections/static-ethernet.nmconnection`):
+```
+[connection]
+id=static-ethernet
+type=ethernet
+interface-name=<detected-interface>
+autoconnect=true
+
+[ipv4]
+method=manual
+address1=192.168.1.2/24,192.168.1.1
+dns=1.1.1.1;1.0.0.1;
+
+[ipv6]
+method=auto
+```
+
+### 9. Directory Structure
+
+#### User Directories
+```
+~/Desktop
+~/Documents
+~/Downloads
+~/Music
+~/Videos
+~/Pictures/Wallpapers (với git clone từ mylinuxforwork)
+~/OneDrive
+```
+
+#### Project Directories
+```
+~/AI-Projects
+~/AI-Models
+~/Creative-Projects
+~/Blender-Projects
+```
+
+#### Config Directories
+```
+~/.local/bin
+~/.config/hypr/scripts
+~/.config/caelestia
+~/.config/hypr/hyprland
+~/.config/fastfetch/logo
+~/.config/kitty
+~/.config/xfce4
+~/.config/gtk-3.0
+```
+
+#### GTK Bookmarks (`~/.config/gtk-3.0/bookmarks`)
+```
+file://$HOME/Downloads
+file://$HOME/Documents
+file://$HOME/Pictures
+file://$HOME/Videos
+file://$HOME/Music
+file://$HOME/OneDrive
+```
+
+---
+
+## 🔧 Post-Installation Steps
+
+### 1. Reboot Required
 ```bash
 sudo reboot
 ```
+Các thay đổi sau cần reboot:
+- NVIDIA kernel module configurations
+- CPU governor settings
+- Systemd services
+- Network configurations
 
-### 2. Thiết Lập Blender GPU
+### 2. Verify NVIDIA Setup
 ```bash
-blender-setup-gpu
-# Làm theo hướng dẫn để enable OptiX trong Blender
-```
-
-### 3. Tải Mô Hình AI/ML (Tùy chọn)
-```bash
-ollama-download-recommended
-```
-
-### 4. Cấu Hình OBS
-```bash
-obs
-# Settings → Output → Enable NVENC
-# Settings → Video → 1920x1080 @ 60fps
-```
-
----
-
-## 💡 Điểm Mạnh Của Thiết Lập Này
-
-### 1. **Blender OptiX Rendering**
-- ✅ **3-5x nhanh hơn** CPU rendering
-- ✅ **OptiX AI denoiser** - chất lượng cao với ít samples
-- ✅ **12GB VRAM** - đủ cho cảnh phức tạp
-- ✅ **Real-time viewport** rendering
-
-### 2. **Complete Creative Suite**
-- ✅ **GIMP** - Thay thế Photoshop miễn phí
-- ✅ **Inkscape** - Vector design chuyên nghiệp
-- ✅ **Kdenlive/DaVinci** - Video editing mạnh mẽ
-- ✅ **Tích hợp GPU** - Tăng tốc mọi workflow
-
-### 3. Mã Hóa Phần Cứng (NVENC)
-- ✅ Stream/ghi hình **không mất FPS**
-- ✅ Transcode video nhanh chóng
-- ✅ Độ trễ thấp cho streaming
-
-### 4. VRAM 12GB
-- ✅ **Blender rendering** - Cảnh phức tạp
-- ✅ **Phát triển UE5** - Nanite + Lumen
-- ✅ **AI/ML** - LLM 8B, SDXL
-- ✅ **Gaming** - Texture Ultra
-- ✅ **Đa nhiệm** - Render + AI + Game
-
-### 5. Ryzen 5800X (8C/16T)
-- ✅ **Multi-thread** - Render, compile, AI training
-- ✅ **Single-thread** - Gaming, viewport
-- ✅ **Hiệu quả** - Zen 3 architecture
-
----
-
-## 🎯 Các Trường Hợp Sử Dụng
-
-### 1. 3D Artist / Animator
-```
-✅ Blender với OptiX rendering
-✅ Real-time viewport performance
-✅ GPU-accelerated compositing
-✅ Fast iteration cycles
-✅ Export cho UE5/Unity
-```
-
-### 2. Graphic Designer
-```
-✅ GIMP cho photo editing
-✅ Inkscape cho vector work
-✅ Krita cho digital painting
-✅ Color management với Darktable
-✅ Print-ready với Scribus
-```
-
-### 3. Video Editor / Content Creator
-```
-✅ Kdenlive/DaVinci cho editing
-✅ NVENC hardware encoding
-✅ GPU effects rendering
-✅ AI upscaling và denoising
-✅ OBS cho streaming
-```
-
-### 4. Game Developer
-```
-✅ UE5 development
-✅ Blender cho asset creation
-✅ GIMP cho textures
-✅ Full C# stack
-✅ Docker cho builds
-```
-
-### 5. AI/ML Developer
-```
-✅ Local LLM inference
-✅ Stable Diffusion generation
-✅ Model fine-tuning
-✅ Jupyter notebooks
-✅ PyTorch/TensorFlow GPU
-```
-
----
-
-## ⚠️ Khắc Phục Sự Cố
-
-### Blender không nhận GPU
-```bash
-# Kiểm tra CUDA
 nvidia-smi
-check-ai-setup
+```
+Nên thấy GPU được nhận diện và driver version.
 
-# Chạy Blender GPU setup
-blender-setup-gpu
+### 3. Test Gaming
+```bash
+# Enable gamemode for Steam
+gamemoderun %command%
 
-# Khởi động lại Blender
+# Check MangoHud
+mangohud glxgears
 ```
 
-### NVENC không hoạt động trong OBS/FFmpeg
+### 4. Configure Blender GPU
 ```bash
-# Cài đặt CUDA
+# Launch Blender
+blender
+
+# Go to: Edit → Preferences → System → Cycles Render Devices
+# Select: OptiX
+# Enable: GeForce RTX 3060
+```
+
+### 5. Start AI Services
+```bash
+# Verify Ollama is running
+sudo systemctl status ollama
+
+# Test CUDA
+python -c "import torch; print(torch.cuda.is_available())"
+```
+
+### 6. Configure Vietnamese Input
+```bash
+# Launch Fcitx5 Configuration
+fcitx5-configtool
+
+# Add Bamboo input method
+# Configure hotkey (default: Ctrl+Space)
+```
+
+### 7. Setup GDM
+```bash
+# GDM should auto-start on next boot
+# Configure with:
+gdm-settings
+```
+
+---
+
+## 📊 Expected Performance
+
+### CPU (Ryzen 7 5800X)
+```
+Base: 3.8 GHz
+Boost: Up to 4.7 GHz (single-core)
+All-core sustained: 4.4-4.5 GHz
+Temperature (idle): 40-50°C
+Temperature (load): 70-80°C
+Power: 105W TDP, 142W PPT
+```
+
+### GPU (RTX 3060 12GB)
+```
+Boost clock: 1777 MHz
+Memory: 12GB GDDR6 @ 15 Gbps
+Temperature (idle): 30-40°C
+Temperature (load): 60-75°C
+Power: 170W TDP
+CUDA Compute: 8.6
+Tensor Cores: Yes (AI acceleration)
+RT Cores: Gen 2
+```
+
+### Blender Rendering (Cycles OptiX)
+```
+Simple scene (1M polygons): 2-5 minutes
+Complex scene (10M+ polygons): 10-30 minutes
+Animation (250 frames): 2-8 hours
+Viewport: Real-time with 128-256 samples
+```
+
+### Gaming Performance
+```
+1080p Ultra: 60-144 FPS (esports)
+1080p High/Ultra: 40-90 FPS (AAA titles)
+Proton/Wine compatibility: 80%+ games work
+Performance vs Windows: 90-95%
+```
+
+### AI/ML Capabilities (12GB VRAM)
+```
+✅ Llama 3.2 3B (3GB VRAM) - Fast
+✅ Mistral 7B (4-5GB VRAM) - Balanced
+✅ Llama 3.1 8B (5-6GB VRAM) - High quality
+✅ CodeLlama 7B (4-5GB VRAM) - Programming
+⚠️ Mixtral 8x7B (6-8GB VRAM) - 4-bit quantization
+✅ Stable Diffusion 1.5 (512x512) - Fast
+✅ SDXL (1024x1024) - Use --medvram
+✅ ControlNet - Works well
+```
+
+---
+
+## 🛠️ Troubleshooting
+
+### NVIDIA Driver Issues
+```bash
+# Check driver status
+pacman -Qi nvidia-utils
+
+# Verify kernel modules
+lsmod | grep nvidia
+
+# Check if optimization was applied
+cat /etc/modprobe.d/nvidia.conf
+cat /etc/mkinitcpio.conf
+```
+
+### Gaming Performance Issues
+```bash
+# Enable gamemode
+systemctl --user status gamemoded
+
+# Check MangoHud
+cat ~/.config/MangoHud/MangoHud.conf
+
+# Verify multilib
+grep -A1 "\[multilib\]" /etc/pacman.conf
+```
+
+### Docker Permission Denied
+```bash
+# Check docker group
+groups $USER
+
+# If not in docker group, log out and log back in
+# Or run:
+newgrp docker
+```
+
+### Blender Not Using GPU
+```bash
+# Check CUDA
+nvidia-smi
+
+# Verify CUDA toolkit
+pacman -Qi cuda
+
+# In Blender:
+# Edit → Preferences → System → Cycles Render Devices → OptiX
+```
+
+### Vietnamese Input Not Working
+```bash
+# Start Fcitx5
+fcitx5 &
+
+# Set environment variables (add to ~/.profile or ~/.bash_profile):
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS=@im=fcitx
+```
+
+### OBS NVENC Not Available
+```bash
+# Install CUDA
 sudo pacman -S cuda
 
-# Test NVENC
+# Check ffmpeg hardware acceleration
 ffmpeg -hwaccels
-```
 
-### Blender crash khi render
-```bash
-# Giảm tile size
-# Enable progressive refine
-# Giảm samples
-# Check VRAM usage: monitor-vram
+# Restart OBS
 ```
 
 ---
 
-## 📊 Yêu Cầu Dung Lượng Ổ Đĩa
+## 📁 Important File Locations
 
-### Cài Đặt Mới
+### Logs & State
 ```
-Hệ thống cơ bản: ~15GB
-Công cụ game: ~5GB
-Phát triển: ~8GB
-Công cụ AI/ML: ~10GB
+~/setup_complete_*.log              # Installation log
+~/.cache/caelestia-setup/setup_state.json  # Setup state (for resume)
+~/Documents/caelestia-configs-*     # Config backups
+```
+
+### Configuration Files
+```
+~/.local/share/caelestia/           # Caelestia repository
+~/.config/                          # User configurations (symlinked)
+/etc/modprobe.d/nvidia.conf         # NVIDIA modprobe settings
+/etc/mkinitcpio.conf                # Early boot modules
+/etc/systemd/resolved.conf          # DNS configuration
+/etc/NetworkManager/system-connections/  # Network profiles
+/etc/sysctl.d/99-ryzen-optimization.conf  # Kernel parameters
+/etc/udev/rules.d/60-ioschedulers.rules   # I/O scheduler
+```
+
+---
+
+## 🎯 Use Cases
+
+### 1. 3D Artist / Animator
+- Blender with OptiX rendering (3-5x faster than CPU)
+- Real-time viewport performance
+- 12GB VRAM for complex scenes
+- GPU-accelerated compositing
+
+### 2. Graphic Designer
+- GIMP for photo editing
+- Inkscape for vector graphics
+- Krita for digital painting
+- Darktable for RAW workflow
+
+### 3. Video Editor / Streamer
+- Kdenlive/DaVinci for editing
+- OBS with NVENC (no FPS loss)
+- GPU effects rendering
+- Low-latency streaming
+
+### 4. Game Developer
+- .NET development (C#)
+- Full toolchain: Rider, VS Code
+- Docker for containerization
+- Blender for asset creation
+
+### 5. AI/ML Developer
+- Local LLM inference (Ollama)
+- Stable Diffusion generation
+- PyTorch/TensorFlow GPU
+- Jupyter notebooks
+- CUDA 8.6 support
+
+### 6. Gamer
+- Steam + Proton-GE
+- Lutris for non-Steam games
+- GameMode for performance
+- MangoHud for monitoring
+- Full Xbox controller support
+
+---
+
+## 💾 Disk Space Requirements
+
+### Fresh Installation
+```
+System base: ~15GB
+Gaming tools: ~5GB
+Development: ~8GB
+AI/ML tools: ~10GB
 Creative Suite: ~5GB
-Unreal Engine: ~25GB (nếu cài đặt)
-Tổng: ~43GB (68GB với UE5)
+Total: ~43GB
 ```
 
-### Sau Khi Sử Dụng
+### After Usage
 ```
 Blender projects: 5-50GB
 AI models: 20-50GB
-Game installations: varies
+Game installations: varies (10-100GB per game)
 Video projects: 50-200GB
-Khuyến nghị: 200-500GB free
+Recommended free space: 200-500GB
 ```
 
 ---
 
-## 🌟 Tại Sao Chọn Thiết Lập Này?
+## 🔍 Script Features
 
-### RTX 3060 12GB
-- ✅ **12GB VRAM** - Perfect cho Blender + AI/ML
-- ✅ **OptiX** - AI-accelerated ray tracing
-- ✅ **NVENC** - Hardware video encoding
-- ✅ **Tensor Cores** - AI denoising
-- ✅ **CUDA 8.6** - Tương thích mọi creative app
+### State Management
+- JSON-based state tracking
+- Resume capability on interruption
+- Tracks completed/failed/warning steps
+- Timestamp logging
+
+### Backup System
+- Automatic backup of modified system files
+- Timestamped backups in `~/Documents/`
+- Preserves original configurations
+
+### Package Management
+- Intelligent package detection (official repos vs AUR)
+- Automatic conflict resolution
+- Retry mechanism with exponential backoff
+- Timeout protection for AUR builds
+- Skip already-installed packages
+
+### Error Handling
+- Comprehensive logging
+- Color-coded output
+- Non-fatal warnings
+- Critical error stopping with log reference
+
+### Safety Features
+- No automatic driver installation (user must install)
+- Confirmation on config overwrites
+- Backup before modifications
+- Sudo keep-alive mechanism
 
 ---
 
-## 📞 Hỗ Trợ
+## ⚠️ Important Notes
 
+### About NVIDIA Drivers
+⚠️ **CRITICAL**: This script does NOT install NVIDIA drivers. You must install them via:
+```bash
+# Option 1: CachyOS installer (recommended)
+# Option 2: Manual installation
+sudo pacman -S linux-cachyos-nvidia-open
+```
+
+The script only optimizes the configuration for better performance.
+
+### Network Configuration
+The script sets a static IP `192.168.1.2/24` with gateway `192.168.1.1`. Modify this in the script if your network uses different addressing.
+
+### Multilib Repository
+Automatically enabled for 32-bit gaming support. If you need to manually enable:
+```bash
+sudo nano /etc/pacman.conf
+# Uncomment [multilib] section
+sudo pacman -Sy
+```
+
+---
+
+## 🌟 Highlights
+
+### Performance
+- ✅ **CPU Governor**: Performance mode for maximum speed
+- ✅ **I/O Scheduler**: BFQ for responsiveness, none for NVMe
+- ✅ **Network**: BBR congestion control + CAKE qdisc
+- ✅ **Memory**: Optimized vm.swappiness and cache pressure
+
+### Gaming
+- ✅ **Proton-GE**: Latest compatibility layers
+- ✅ **GameMode**: Automatic CPU optimization
+- ✅ **MangoHud**: Real-time performance overlay
+- ✅ **NVIDIA**: Hardware-accelerated everything
+
+### Creative
+- ✅ **Blender OptiX**: AI-accelerated ray tracing
+- ✅ **NVENC**: Zero-performance-loss encoding
+- ✅ **Complete Suite**: Professional alternatives to Adobe
+- ✅ **12GB VRAM**: No limitations on complex projects
+
+### Development
+- ✅ **Full .NET Stack**: SDK 8.0 + 9.0 + ASP.NET
+- ✅ **Containers**: Docker + Docker Compose
+- ✅ **Multiple Languages**: C#, C++, Rust, Go, Node.js
+- ✅ **Professional IDEs**: Rider, VS Code
+
+### AI/ML
+- ✅ **CUDA 12**: Latest toolkit + cuDNN
+- ✅ **PyTorch**: Full CUDA support
+- ✅ **Ollama**: Local LLM inference
+- ✅ **12GB VRAM**: Run 7B-8B models comfortably
+
+---
+
+## 📞 Support
+
+- **Repository**: [github.com/hoangducdt/caelestia](https://github.com/hoangducdt/caelestia)
 - **Issues**: [GitHub Issues](https://github.com/hoangducdt/caelestia/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/hoangducdt/caelestia/discussions)
 
 ---
 
-## 📝 Giấy Phép
+## 📝 License
 
 MIT License
 
 ---
 
+## 🙏 Credits
+
+- **CachyOS Team**: For the optimized Arch-based distribution
+- **Hyprland**: For the excellent Wayland compositor
+- **Community**: For testing and feedback
+
+---
+
 **Made with ❤️ for ROG STRIX B550-XE | Ryzen 7 5800X | RTX 3060 12GB**
 
-**Ready to game, stream, develop, create, and render! 🚀🎮🤖🎨🎬**
+**Ready to game, develop, create, and render! 🚀🎮💻🎨**
