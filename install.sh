@@ -1326,37 +1326,120 @@ setup_configs() {
         chmod +x "$config_home/.config/fastfetch/fastfetch.sh"
     fi
 
-    chmod 644 "$config_home/.face"
+    # Face permissions (handle symlink properly)
+    if [ -L "$config_home/.face" ]; then
+        # It's a symlink, fix the target file permissions
+        local face_target
+        face_target=$(readlink -f "$config_home/.face")
+        if [ -f "$face_target" ]; then
+            chmod 644 "$face_target"
+            log "✓ Set permissions for avatar target: $face_target"
+        fi
+    else
+        # Regular file
+        chmod 644 "$config_home/.face"
+    fi
 
     # Setup GDM avatar via AccountsService
+    log "Configuring GDM avatar..."
     local username="$USER"
     local accountsservice_dir="/var/lib/AccountsService/users"
     local accountsservice_file="$accountsservice_dir/$username"
 
+    # Create AccountsService directory if it doesn't exist
+    if [ ! -d "/var/lib/AccountsService" ]; then
+        sudo mkdir -p /var/lib/AccountsService || {
+            warn "Failed to create /var/lib/AccountsService"
+        }
+    fi
+
+    if [ ! -d "$accountsservice_dir" ]; then
+        sudo mkdir -p "$accountsservice_dir" || {
+            warn "Failed to create AccountsService users directory"
+        }
+        sudo chmod 755 "$accountsservice_dir"
+        log "✓ Created AccountsService directory"
+    fi
+
+    # Get the absolute path for icon (handle symlink)
+    local icon_path
+    if [ -L "$config_home/.face" ]; then
+        # Use the symlink target path
+        icon_path=$(readlink -f "$config_home/.face")
+        log "Using symlink target for GDM: $icon_path"
+    else
+        icon_path="$config_home/.face"
+    fi
+
+    # Create/update AccountsService file with error checking
     if [ -f "$accountsservice_file" ]; then
-        # File đã tồn tại - kiểm tra và cập nhật
+        # File exists - update
         if sudo grep -q "^\[User\]" "$accountsservice_file"; then
-            # Có section [User]
             if sudo grep -q "^Icon=" "$accountsservice_file"; then
-                # Đã có dòng Icon, thay thế
-                sudo sed -i "s|^Icon=.*|Icon=$HOME/.face|" "$accountsservice_file"
+                sudo sed -i "s|^Icon=.*|Icon=$icon_path|" "$accountsservice_file"
             else
-                # Chưa có dòng Icon, thêm vào sau [User]
-                sudo sed -i "/^\[User\]/a Icon=$HOME/.face" "$accountsservice_file"
+                sudo sed -i "/^\[User\]/a Icon=$icon_path" "$accountsservice_file"
             fi
         else
-            # Không có section [User], thêm section mới
-            echo -e "\n[User]\nIcon=$HOME/.face" | sudo tee -a "$accountsservice_file" > /dev/null
+            echo -e "\n[User]\nIcon=$icon_path" | sudo tee -a "$accountsservice_file" > /dev/null
         fi
+        log "✓ Updated AccountsService file"
     else
-        # File chưa tồn tại - tạo mới
-        sudo tee "$accountsservice_file" > /dev/null <<EOF
+        # File doesn't exist - create new
+        if sudo tee "$accountsservice_file" > /dev/null <<EOF
 [User]
-Icon=$HOME/.face
+Icon=$icon_path
 EOF
+        then
+            log "✓ Created AccountsService file"
+        else
+            warn "Failed to create AccountsService file"
+        fi
     fi
-    
-    chmod 644 "$accountsservice_file"
+
+    # Set correct permissions with sudo
+    sudo chmod 644 "$accountsservice_file" || warn "Failed to set AccountsService file permissions"
+    sudo chown root:root "$accountsservice_file" || warn "Failed to set AccountsService file owner"
+
+    # Ensure parent directories are accessible by GDM user
+    log "Ensuring GDM can access avatar file..."
+
+    # Get all parent directories of the icon path
+    local current_dir
+    current_dir=$(dirname "$icon_path")
+    local dirs_to_fix=()
+
+    while [ "$current_dir" != "/" ] && [ "$current_dir" != "/home" ]; do
+        # Check if others have execute permission
+        local perms
+        perms=$(stat -c "%a" "$current_dir" 2>/dev/null || echo "000")
+        local others_exec=${perms:2:1}
+        
+        # If no execute for others, need to fix
+        if [ "$others_exec" -eq 0 ] || [ "$others_exec" -eq 2 ] || [ "$others_exec" -eq 4 ] || [ "$others_exec" -eq 6 ]; then
+            dirs_to_fix+=("$current_dir")
+        fi
+        
+        current_dir=$(dirname "$current_dir")
+    done
+
+    # Fix directories in reverse order (from root to leaf)
+    if [ ${#dirs_to_fix[@]} -gt 0 ]; then
+        log "Adding execute permissions for GDM access..."
+        for ((i=${#dirs_to_fix[@]}-1; i>=0; i--)); do
+            local dir="${dirs_to_fix[$i]}"
+            chmod o+x "$dir" 2>/dev/null || warn "Could not add execute permission to: $dir"
+            log "  ✓ Fixed: $dir"
+        done
+    fi
+
+    # Verify GDM can actually read the file
+    if sudo -u gdm test -r "$icon_path" 2>/dev/null; then
+        log "✓ GDM avatar configured successfully"
+    else
+        warn "GDM user may not be able to read avatar file"
+        warn "You may need to manually fix directory permissions"
+    fi
     
     # DNS configuration - modify existing values in resolved.conf
     log "Configuring system settings..."
