@@ -17,7 +17,6 @@ readonly STATE_DIR="$HOME/.cache/caelestia-setup"
 readonly STATE_FILE="$STATE_DIR/setup_state.json"
 readonly BACKUP_DIR="$HOME/Documents/caelestia-configs-${BACKUP_TIMESTAMP}"
 
-# Define functions before use
 log() {
 	echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
 }
@@ -183,7 +182,6 @@ install_package() {
     local max_retries=3
     local retry=0
     
-    # Skip if installed
     if pacman -Qi "$pkg" &>/dev/null; then
         return 0
     fi
@@ -232,19 +230,15 @@ install_packages() {
     local failed=()
     
     for pkg in "${packages[@]}"; do
-        # Skip if already installed
         if pacman -Qi "$pkg" &>/dev/null; then
             continue
         fi
         
-        # Check if package exists in official repos
         if pacman -Si "$pkg" &>/dev/null 2>&1; then
-            # Package found in official repos, install with pacman
             if ! install_package "$pkg"; then
                 failed+=("$pkg")
             fi
         else
-            # Package not in official repos, try AUR with yay
             log "Package '$pkg' not found in official repos, trying AUR..."
             if ! install_aur_package "$pkg"; then
                 failed+=("$pkg")
@@ -291,10 +285,8 @@ setup_system_update() {
     
     log "Updating system..."
     
-    # Update keyrings first
     sudo pacman -Sy --noconfirm archlinux-keyring cachyos-keyring 2>&1 | tee -a "$LOG" || true
     
-    # Full update with retry
     local max_retries=3
     local retry=0
     
@@ -325,7 +317,6 @@ setup_nvidia_optimization() {
     log "NVIDIA OPTIMIZATION (Config Only - No Driver Changes)"
     log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    # Check GPU
     if ! lspci | grep -i nvidia &>/dev/null; then
         log "⊘ No NVIDIA GPU, skipping"
         mark_completed "nvidia_optimization"
@@ -336,7 +327,6 @@ setup_nvidia_optimization() {
     lspci | grep -i nvidia | head -1
     echo ""
     
-    # Verify driver installed
     log "Checking driver status..."
     
     if ! pacman -Qi nvidia-utils &>/dev/null; then
@@ -895,27 +885,7 @@ setup_gaming() {
     fi
 	# Configure gamemode
     sudo usermod -aG gamemode "$USER"
-    
-    # MangoHud config for RTX 3060
-    mkdir -p "$HOME/.config/MangoHud"
-    cat > "$HOME/.config/MangoHud/MangoHud.conf" <<EOF
-# MangoHud Config for RTX 3060
-legacy_layout=false
-horizontal
-gpu_stats
-cpu_stats
-ram
-vram
-fps
-frametime=0
-frame_timing=1
-vulkan_driver
-wine
-engine_version
-gamemode
-no_display
-EOF
-    
+
     mark_completed "gaming"
     log "✓ Gaming setup completed"
 }
@@ -1157,18 +1127,29 @@ setup_directories() {
     
     log "Creating directories & downloading wallpapers..."
     
-    mkdir -p "$HOME"/{Desktop,Documents,Downloads,Music,Videos}
+    mkdir -p "$HOME"/{Desktop,Documents,Downloads,Music,Videos,OneDrive}
     mkdir -p "$HOME/Pictures/Wallpapers"
     mkdir -p "$HOME"/{AI-Projects,AI-Models,Creative-Projects,Blender-Projects}
     mkdir -p "$HOME/.local/bin"
-    mkdir -p "$HOME/.config/hypr/scripts"
+
+    mkdir -p "$HOME/.config/btop"
     mkdir -p "$HOME/.config/caelestia"
-    mkdir -p "$HOME/OneDrive"
-    mkdir -p "$HOME/.config/hypr/hyprland"
     mkdir -p "$HOME/.config/fastfetch/logo"
+    mkdir -p "$HOME/.config/fish/functions"
+    mkdir -p "$HOME/.config/hypr/hyprland"
+    mkdir -p "$HOME/.config/hypr/scheme"
+    mkdir -p "$HOME/.config/hypr/scripts"
     mkdir -p "$HOME/.config/kitty"
+    mkdir -p "$HOME/.config/MangoHud"
+    mkdir -p "$HOME/.config/micro"
+    mkdir -p "$HOME/.config/spicetify/Themes/caelestia"
+    mkdir -p "$HOME/.config/Thunar"
+    mkdir -p "$HOME/.config/uwsm"
+    mkdir -p "$HOME/.config/vscode"
+    mkdir -p "$HOME/.config/VSCodium/User"
     mkdir -p "$HOME/.config/xfce4"
     mkdir -p "$HOME/.config/gtk-3.0"
+    
     mkdir -p "/var/lib/AccountsService/users"
     
     # Wallpapers
@@ -1192,132 +1173,117 @@ EOF
 }
 
 setup_configs() {
-    if [ "$(is_completed 'configs')" = "yes" ]; then
-        log "✓ Configs already installed"
+    if [ "$(is_completed "configs")" = "yes" ]; then
+        log "✓ Configuration files already installed, skipping"
         return 0
     fi
     
     log "Installing configuration files..."
     
-	# Define the repo Configs directory
-	local repo_dir="$HOME/.local/share/caelestia"
-	local configs_dir="$repo_dir/Configs"
-	local config_home="${XDG_CONFIG_HOME:-$HOME}"
-	
-	# Check if Configs directory exists
-	if [ ! -d "$configs_dir" ]; then
-	    error "Configs directory not found at: $configs_dir"
-	fi
-	
-	# Tạo thư mục backup chỉ khi cần
-	local CONFIGS_BACKUP_DIR=""
-	local backup_items=()
-	
-	# Sync ONLY top-level items (NOT recursive)
-	log "Syncing configuration items..."
-	
-	# Đầu tiên: kiểm tra những gì cần backup
-	while IFS= read -r item; do
-	    item_name=$(basename "$item")
-	    target_path="$config_home/$item_name"
-	    
-	    # Nếu target đã tồn tại và KHÔNG phải symlink trỏ đến đúng vị trí
-	    if [ -e "$target_path" ] && [ ! -L "$target_path" ]; then
-	        # Đây là file/directory thực tế của user, cần backup
-	        backup_items+=("$item_name")
-	    elif [ -L "$target_path" ] && [ "$(readlink -f "$target_path")" != "$(realpath "$item")" ]; then
-	        # Đây là symlink sai, cần backup
-	        backup_items+=("$item_name")
-	    fi
-	done < <(find "$configs_dir" -maxdepth 1 \( -name ".*" -o ! -name ".*" \) ! -name "." ! -name ".." ! -path "$configs_dir" -print0 | tr '\0' '\n')
-	
-	# Nếu có items cần backup, tạo thư mục backup
-	if [ ${#backup_items[@]} -gt 0 ]; then
-	    CONFIGS_BACKUP_DIR="$HOME/.backup/Configs.bak_$(date +%Y%m%d_%H%M%S)"
-	    mkdir -p "$CONFIGS_BACKUP_DIR"
-	    log "Creating backup for ${#backup_items[@]} items: ${backup_items[*]}"
-	fi
-	
-	# Thực hiện sync
-	find "$configs_dir" -maxdepth 1 \( -name ".*" -o ! -name ".*" \) ! -name "." ! -name ".." ! -path "$configs_dir" -print0 | while IFS= read -r -d '' item; do
-	    local item_name
-	    item_name=$(basename "$item")
-	    local target_path="$config_home/$item_name"
-	    
-	    log "Processing: $item_name"
-	    
-	    # Kiểm tra xem có cần backup không
-	    local need_backup=false
-	    if [[ " ${backup_items[*]} " == *" $item_name "* ]]; then
-	        need_backup=true
-	    fi
-	    
-	    # Nếu cần backup
-	    if [ "$need_backup" = true ] && [ -n "$CONFIGS_BACKUP_DIR" ]; then
-	        local backup_path="$CONFIGS_BACKUP_DIR/$item_name"
-	        
-	        if [ -d "$target_path" ]; then
-	            if cp -r "$target_path" "$backup_path" 2>/dev/null; then
-	                log "  ✓ Backed up directory: $item_name"
-	                rm -rf "$target_path" 2>/dev/null
-	            else
-	                warn "  ⊘ Could not backup directory: $item_name"
-	                continue
-	            fi
-	        else
-	            mkdir -p "$(dirname "$backup_path")"
-	            if cp -r "$target_path" "$backup_path" 2>/dev/null; then
-	                log "  ✓ Backed up file: $item_name"
-	                rm -f "$target_path" 2>/dev/null
-	            else
-	                warn "  ⊘ Could not backup file: $item_name"
-	                continue
-	            fi
-	        fi
-	    elif [ -e "$target_path" ] || [ -L "$target_path" ]; then
-	        # Không cần backup nhưng tồn tại -> xóa để tạo symlink mới
-	        rm -rf "$target_path" 2>/dev/null || warn "  ⚠ Could not remove: $item_name"
-	    fi
-	    
-	    # Tạo symlink mới
-	    mkdir -p "$(dirname "$target_path")"
-	    if ln -sf "$(realpath "$item")" "$target_path" 2>/dev/null; then
-	        log "  ✓ Linked: $item_name → $target_path"
-	    else
-	        warn "  ✗ Failed to link: $item_name"
-	    fi
-	done
-	
-	# Hiển thị backup summary nếu có backup
-	if [ -n "$CONFIGS_BACKUP_DIR" ] && [ -d "$CONFIGS_BACKUP_DIR" ]; then
-	    local backup_count=0
-	    backup_count=$(find "$CONFIGS_BACKUP_DIR" 2>/dev/null | wc -l)
-	    
-	    if [ "$backup_count" -gt 1 ]; then  # >1 vì có chính thư mục
-	        log ""
-	        log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	        log "✓ SAFETY BACKUP CREATED!"
-	        log "  Location: $CONFIGS_BACKUP_DIR"
-	        log "  Items backed up: ${#backup_items[@]}"
-	        log "  List: ${backup_items[*]}"
-	        log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	        warn "⚠ User configuration files have been backed up!"
-	    else
-	        # Xóa thư mục backup rỗng
-	        rmdir "$CONFIGS_BACKUP_DIR" 2>/dev/null || true
-	    fi
-	fi
+    local config_home="$HOME"
+    local configs_dir="$HOME/.local/share/caelestia/Configs"
     
-    # Special handling for specific configs
+    if [ ! -d "$configs_dir" ]; then
+        error "Configs directory not found at $configs_dir"
+    fi
+    
+    local CONFIGS_BACKUP_DIR=""
+    
+    symlink_item() {
+        local source="$1"
+        local target="$2"
+        local relative_path="$3"
+        
+        if [ -e "$target" ] || [ -L "$target" ]; then
+            if [ -L "$target" ]; then
+                local current_target
+                current_target=$(readlink -f "$target" 2>/dev/null || echo "")
+                local source_abs
+                source_abs=$(realpath "$source" 2>/dev/null || echo "")
+                
+                if [ "$current_target" = "$source_abs" ]; then
+                    log "  ✓ Already linked: $relative_path"
+                    return 0
+                fi
+            fi
+            
+            if [ -z "$CONFIGS_BACKUP_DIR" ]; then
+                CONFIGS_BACKUP_DIR="$BACKUP_DIR/configs-backup-$(date +%Y%m%d_%H%M%S)"
+                mkdir -p "$CONFIGS_BACKUP_DIR"
+                log "Created backup directory: $CONFIGS_BACKUP_DIR"
+            fi
+            
+            local backup_path="$CONFIGS_BACKUP_DIR/$relative_path"
+            mkdir -p "$(dirname "$backup_path")"
+            
+            if cp -rL "$target" "$backup_path" 2>/dev/null; then
+                log "  ✓ Backed up: $relative_path"
+            else
+                warn "  ⊘ Could not backup: $relative_path"
+            fi
+            
+            rm -rf "$target" 2>/dev/null || warn "  ⚠ Could not remove: $relative_path"
+        fi
+        
+        mkdir -p "$(dirname "$target")"
+        
+        local source_abs
+        source_abs=$(realpath "$source")
+        if ln -sf "$source_abs" "$target" 2>/dev/null; then
+            log "  ✓ Linked: $relative_path"
+        else
+            warn "  ✗ Failed to link: $relative_path"
+        fi
+    }
+    
+    find "$configs_dir" -mindepth 1 -maxdepth 1 -print0 | while IFS= read -r -d '' item; do
+        local item_name
+        item_name=$(basename "$item")
+        
+        log "Processing: $item_name"
+        
+        if [ -d "$item" ] && [ ! -L "$item" ]; then
+            local target_base="$config_home/$item_name"
+            mkdir -p "$target_base"
+            
+            find "$item" -mindepth 1 -maxdepth 1 -print0 | while IFS= read -r -d '' subitem; do
+                local subitem_name
+                subitem_name=$(basename "$subitem")
+                local target_path="$target_base/$subitem_name"
+                local relative_path="$item_name/$subitem_name"
+                
+                symlink_item "$subitem" "$target_path" "$relative_path"
+            done
+        else
+            local target_path="$config_home/$item_name"
+            symlink_item "$item" "$target_path" "$item_name"
+        fi
+    done
+    
+    if [ -n "$CONFIGS_BACKUP_DIR" ] && [ -d "$CONFIGS_BACKUP_DIR" ]; then
+        local backup_count=0
+        backup_count=$(find "$CONFIGS_BACKUP_DIR" -type f 2>/dev/null | wc -l)
+        
+        if [ "$backup_count" -gt 0 ]; then
+            log ""
+            log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            log "✓ SAFETY BACKUP CREATED!"
+            log "  Location: $CONFIGS_BACKUP_DIR"
+            log "  Files backed up: $backup_count"
+            log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            warn "⚠ User configuration files have been backed up!"
+        else
+            rm -rf "$CONFIGS_BACKUP_DIR" 2>/dev/null || true
+        fi
+    fi
+    
     log "Applying special configurations..."
     
-    # Reload Hyprland if running
     if pgrep -x "Hyprland" > /dev/null; then
         log "Reloading Hyprland configuration..."
         hyprctl reload 2>/dev/null || warn "Could not reload Hyprland"
     fi
     
-    # Make executable scripts
     if [ -d "$config_home/.config/hypr/scripts" ]; then
         chmod +x "$config_home/.config/hypr/scripts"/*.sh 2>/dev/null || true
     fi
@@ -1326,27 +1292,22 @@ setup_configs() {
         chmod +x "$config_home/.config/fastfetch/fastfetch.sh"
     fi
 
-    # Face permissions (handle symlink properly)
     if [ -L "$config_home/.face" ]; then
-        # It's a symlink, fix the target file permissions
         local face_target
         face_target=$(readlink -f "$config_home/.face")
         if [ -f "$face_target" ]; then
             chmod 644 "$face_target"
             log "✓ Set permissions for avatar target: $face_target"
         fi
-    else
-        # Regular file
+    elif [ -f "$config_home/.face" ]; then
         chmod 644 "$config_home/.face"
     fi
 
-    # Setup GDM avatar via AccountsService
     log "Configuring GDM avatar..."
     local username="$USER"
     local accountsservice_dir="/var/lib/AccountsService/users"
     local accountsservice_file="$accountsservice_dir/$username"
 
-    # Create AccountsService directory if it doesn't exist
     if [ ! -d "/var/lib/AccountsService" ]; then
         sudo mkdir -p /var/lib/AccountsService || {
             warn "Failed to create /var/lib/AccountsService"
@@ -1361,19 +1322,15 @@ setup_configs() {
         log "✓ Created AccountsService directory"
     fi
 
-    # Get the absolute path for icon (handle symlink)
     local icon_path
     if [ -L "$config_home/.face" ]; then
-        # Use the symlink target path
         icon_path=$(readlink -f "$config_home/.face")
         log "Using symlink target for GDM: $icon_path"
     else
         icon_path="$config_home/.face"
     fi
 
-    # Create/update AccountsService file with error checking
     if [ -f "$accountsservice_file" ]; then
-        # File exists - update
         if sudo grep -q "^\[User\]" "$accountsservice_file"; then
             if sudo grep -q "^Icon=" "$accountsservice_file"; then
                 sudo sed -i "s|^Icon=.*|Icon=$icon_path|" "$accountsservice_file"
@@ -1385,45 +1342,38 @@ setup_configs() {
         fi
         log "✓ Updated AccountsService file"
     else
-        # File doesn't exist - create new
-        if sudo tee "$accountsservice_file" > /dev/null <<EOF
+        if sudo tee "$accountsservice_file" > /dev/null <<ACCOUNTSEOF
 [User]
 Icon=$icon_path
-EOF
+ACCOUNTSEOF
         then
             log "✓ Created AccountsService file"
         else
             warn "Failed to create AccountsService file"
         fi
     fi
-
-    # Set correct permissions with sudo
+    
     sudo chmod 644 "$accountsservice_file" || warn "Failed to set AccountsService file permissions"
     sudo chown root:root "$accountsservice_file" || warn "Failed to set AccountsService file owner"
-
-    # Ensure parent directories are accessible by GDM user
+    
     log "Ensuring GDM can access avatar file..."
-
-    # Get all parent directories of the icon path
+    
     local current_dir
     current_dir=$(dirname "$icon_path")
     local dirs_to_fix=()
 
     while [ "$current_dir" != "/" ] && [ "$current_dir" != "/home" ]; do
-        # Check if others have execute permission
         local perms
         perms=$(stat -c "%a" "$current_dir" 2>/dev/null || echo "000")
         local others_exec=${perms:2:1}
         
-        # If no execute for others, need to fix
         if [ "$others_exec" -eq 0 ] || [ "$others_exec" -eq 2 ] || [ "$others_exec" -eq 4 ] || [ "$others_exec" -eq 6 ]; then
             dirs_to_fix+=("$current_dir")
         fi
         
         current_dir=$(dirname "$current_dir")
     done
-
-    # Fix directories in reverse order (from root to leaf)
+    
     if [ ${#dirs_to_fix[@]} -gt 0 ]; then
         log "Adding execute permissions for GDM access..."
         for ((i=${#dirs_to_fix[@]}-1; i>=0; i--)); do
@@ -1433,7 +1383,6 @@ EOF
         done
     fi
 
-    # Verify GDM can actually read the file
     if sudo -u gdm test -r "$icon_path" 2>/dev/null; then
         log "✓ GDM avatar configured successfully"
     else
@@ -1441,14 +1390,12 @@ EOF
         warn "You may need to manually fix directory permissions"
     fi
     
-    # DNS configuration - modify existing values in resolved.conf
     log "Configuring system settings..."
     local resolved_conf="/etc/systemd/resolved.conf"
     if [ -f "$resolved_conf" ]; then
         log "Updating DNS configuration..."
         backup_file "$resolved_conf"
         
-        # Update or add DNS
         if sudo grep -q '^DNS=' "$resolved_conf"; then
             sudo sed -i 's|^DNS=.*|DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com|' "$resolved_conf"
         elif sudo grep -q '^#DNS=' "$resolved_conf"; then
@@ -1457,7 +1404,6 @@ EOF
             echo "DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com" | sudo tee -a "$resolved_conf" >/dev/null
         fi
         
-        # Update or add FallbackDNS
         if sudo grep -q '^FallbackDNS=' "$resolved_conf"; then
             sudo sed -i 's|^FallbackDNS=.*|FallbackDNS=9.9.9.9#dns.quad9.net 2620:fe::9#dns.quad9.net 1.1.1.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 8.8.8.8#dns.google 2001:4860:4860::8888#dns.google|' "$resolved_conf"
         elif sudo grep -q '^#FallbackDNS=' "$resolved_conf"; then
@@ -1466,7 +1412,6 @@ EOF
             echo "FallbackDNS=9.9.9.9#dns.quad9.net 2620:fe::9#dns.quad9.net 1.1.1.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 8.8.8.8#dns.google 2001:4860:4860::8888#dns.google" | sudo tee -a "$resolved_conf" >/dev/null
         fi
         
-        # Update or add DNSOverTLS
         if sudo grep -q '^DNSOverTLS=' "$resolved_conf"; then
             sudo sed -i 's|^DNSOverTLS=.*|DNSOverTLS=yes|' "$resolved_conf"
         elif sudo grep -q '^#DNSOverTLS=' "$resolved_conf"; then
@@ -1480,20 +1425,16 @@ EOF
         warn "systemd resolved.conf not found at $resolved_conf"
     fi
 
-    # Restart systemd-resolved to apply DNS changes
     sudo systemctl restart systemd-resolved.service 2>/dev/null || warn "Failed to restart systemd-resolved"
 
-    # Static IP configuration
     log "Configuring static IP address..."
     
-    # Get the primary network interface
     local primary_interface
     primary_interface=$(ip route | grep default | awk '{print $5}' | head -n1)
     
     if [ -n "$primary_interface" ]; then
         log "Detected primary interface: $primary_interface"
         
-        # Create NetworkManager connection profile for static IP
         sudo tee /etc/NetworkManager/system-connections/static-ethernet.nmconnection > /dev/null <<STATIC_IP
 [connection]
 id=static-ethernet
@@ -1513,10 +1454,7 @@ method=auto
 [proxy]
 STATIC_IP
         
-        # Set correct permissions
         sudo chmod 600 /etc/NetworkManager/system-connections/static-ethernet.nmconnection
-        
-        # Reload NetworkManager
         sudo systemctl reload NetworkManager 2>/dev/null || warn "Failed to reload NetworkManager"
         
         log "✓ Static IP configured: 192.168.1.2/24 with gateway 192.168.1.1"
@@ -1527,6 +1465,7 @@ STATIC_IP
     mark_completed "configs"
     log "✓ All configurations installed successfully"
 }
+
 
 # ===== MAIN =====
 
