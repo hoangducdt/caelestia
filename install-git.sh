@@ -733,8 +733,9 @@ setup_meta_packages() {
 		
 		## 15.3 Caelestia Configuration
 		"caelestia-cli"                 # Caelestia CLI tools
-		"caelestia-shell"               # Caelestia shell configuration
-		
+		#"caelestia-shell"               # Caelestia shell configuration
+		"quickshell-git"
+        
 		# ==========================================================================
 		# PHASE 16: GTK/QT THEMING & APPEARANCE
 		# ==========================================================================
@@ -1132,6 +1133,37 @@ setup_gdm() {
     log "✓ GDM installed and enabled"
 }
 
+setup_caelestia_shell() {
+    if [ "$(is_completed 'caelestia-shell')" = "yes" ]; then
+        log "✓ caelestia-shell already installed"
+        return 0
+    fi
+    
+    log "Installing caelestia-shell configuration..."
+    
+    local CONFIG_DIR="$HOME/.config/quickshell"
+    mkdir -p "$CONFIG_DIR"
+    
+    cd "$CONFIG_DIR" || error "Failed to cd to $CONFIG_DIR"
+    
+    if [ -d "$CONFIG_DIR/caelestia/.git" ]; then
+        log "Caelestia-shell already exists, pulling latest..."
+        cd caelestia
+        git pull || warn "Failed to pull updates"
+    else
+        git clone https://github.com/caelestia-dots/shell.git caelestia || error "Failed to clone caelestia-shell"
+        cd caelestia
+    fi
+    
+    cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ -DINSTALL_QSCONFDIR="$HOME/.config/quickshell/caelestia" || error "CMake failed"
+    cmake --build build || error "Build failed"
+    sudo cmake --install build || error "Install failed"
+    sudo chown -R "$USER:$USER" "$HOME/.config/quickshell/caelestia"
+    
+    mark_completed "caelestia-shell"
+    log "✓ caelestia-shell installed"
+}
+
 setup_directories() {
     if [ "$(is_completed 'directories')" = "yes" ]; then
         log "✓ Directories already created"
@@ -1500,6 +1532,7 @@ main() {
     setup_gdm
     setup_directories
     setup_configs
+    setup_caelestia_shell
     
     # Done
     echo ""
