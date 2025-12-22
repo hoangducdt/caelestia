@@ -1195,7 +1195,7 @@ setup_directories() {
     mkdir -p "$HOME/.config/VSCodium/User"
     mkdir -p "$HOME/.config/xfce4"
     mkdir -p "$HOME/.config/gtk-3.0"
-    mkdir -p "$HOME/.config/qt5ct
+    mkdir -p "$HOME/.config/qt5ct"
     mkdir -p "$HOME/.config/qt6ct"
     
     mkdir -p "/var/lib/AccountsService/users"
