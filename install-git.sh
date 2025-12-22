@@ -217,6 +217,7 @@ install_package() {
     
     while [ $retry -lt $max_retries ]; do
         if sudo pacman -S --noconfirm "$pkg" 2>&1 | tee -a "$LOG"; then
+            log "✓ Successfully installed: $pkg"
             return 0
         fi
         
@@ -247,6 +248,7 @@ install_aur_package() {
     log "Installing AUR: $pkg (timeout: ${timeout_seconds}s)"
     
     if timeout "$timeout_seconds" yay -S --noconfirm "$pkg" 2>&1 | tee -a "$LOG"; then
+        log "✓ Successfully installed AUR package: $pkg"
         return 0
     else
         warn "Failed to install AUR package: $pkg"
@@ -773,7 +775,7 @@ setup_meta_packages() {
         "fuzzel"
 		
 		## 15.3 Caelestia Configuration
-		#"caelestia-cli"                 # Caelestia CLI tools
+		"caelestia-cli"                 # Caelestia CLI tools
 		#"caelestia-shell"               # Caelestia shell configuration
 		"quickshell-git"                # 
 		
@@ -1534,6 +1536,7 @@ setup_caelestia() {
     
     log "Installing caelestia configuration..."
     
+: <<'EOF'
     local CLI_DIR="$HOME/.local/share"
     cd "$CLI_DIR" || error "Failed to cd to $CLI_DIR"
     if [ -d "$CONFIG_DIR/cli/.git" ]; then
@@ -1548,6 +1551,7 @@ setup_caelestia() {
     python -m build --wheel
     sudo python -m installer dist/*.whl
     sudo cp completions/caelestia.fish /usr/share/fish/vendor_completions.d/caelestia.fish
+EOF
     
     local CONFIG_DIR="$HOME/.config/quickshell"
     mkdir -p "$CONFIG_DIR"
@@ -1577,10 +1581,9 @@ setup_caelestia() {
 main() {
     show_banner
     init_state
-    handle_conflicts    # Xử lý conflicts trước
+    handle_conflicts
     install_helper
     clone_repo
-    # Execute all setup functions
     setup_system_update
     setup_nvidia_optimization
     setup_meta_packages

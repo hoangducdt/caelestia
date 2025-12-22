@@ -217,6 +217,7 @@ install_package() {
     
     while [ $retry -lt $max_retries ]; do
         if sudo pacman -S --noconfirm "$pkg" 2>&1 | tee -a "$LOG"; then
+            log "✓ Successfully installed: $pkg"
             return 0
         fi
         
@@ -247,6 +248,7 @@ install_aur_package() {
     log "Installing AUR: $pkg (timeout: ${timeout_seconds}s)"
     
     if timeout "$timeout_seconds" yay -S --noconfirm "$pkg" 2>&1 | tee -a "$LOG"; then
+        log "✓ Successfully installed AUR package: $pkg"
         return 0
     else
         warn "Failed to install AUR package: $pkg"
@@ -1520,10 +1522,9 @@ EOF
 main() {
     show_banner
     init_state
-    handle_conflicts    # Xử lý conflicts trước
+    handle_conflicts
     install_helper
     clone_repo
-    # Execute all setup functions
     setup_system_update
     setup_nvidia_optimization
     setup_meta_packages
