@@ -595,9 +595,10 @@ setup_meta_packages() {
 		# ==========================================================================
 		
 		## 7.1 Container Platform
-		"docker-desktop"                # Docker Desktop - Bao gồm docker + compose
-										# ⚠️ KHÔNG cài riêng "docker" và "docker-compose"
-		"nvidia-container-toolkit"      #The NVIDIA Container Toolkit allows users to build and run GPU-accelerated containers.
+		#"docker-desktop"                # Docker Desktop - Bao gồm docker + compose | ⚠️ KHÔNG cài riêng "docker" và "docker-compose"
+		"docker"
+        "docker-compose"
+        "nvidia-container-toolkit"      #The NVIDIA Container Toolkit allows users to build and run GPU-accelerated containers.
 
 		## 7.2 Databases
 		"postgresql"                    # PostgreSQL database
@@ -619,7 +620,7 @@ setup_meta_packages() {
 		"python-accelerate"             # Training acceleration library
 		
 		## 8.3 Local AI Runtime
-		"ollama-cuda"                   # Local LLM inference with CUDA
+		#"ollama-cuda"                   # Local LLM inference with CUDA
 		
 		# ==========================================================================
 		# PHASE 9: GAMING STACK
@@ -959,9 +960,83 @@ setup_ai_ml() {
         return 0
     fi
     
-    ai_info "Installing AI/ML stack (CUDA + PyTorch for RTX 3060)..."
+    ai_info "Installing AI/ML stack (CUDA RTX 3060)..."
+
+    # Install Ollama
+    curl -fsSL https://ollama.com/install.sh | sh
+
+    # Create ollama user
+    sudo useradd -r -s /bin/false -U -m -d /usr/share/ollama ollama 2>/dev/null || true
+    sudo usermod -a -G ollama "$(whoami)"
+
+    # ========================================
+    # CUSTOM MODEL DIRECTORY CONFIGURATION
+    # ========================================
     
-    sudo systemctl enable --now ollama.service 2>/dev/null || true
+    ai_info "Configuring Ollama model storage..."
+    
+    # Fixed model directory
+    local model_dir="$HOME/AI-Models/ollama"
+    
+    ai_info "Model directory: $model_dir"
+    
+    # Create directory
+    mkdir -p "$model_dir" || error "Failed to create directory: $model_dir"
+    
+    # Set ownership to ollama user
+    sudo chown -R ollama:ollama "$model_dir" 2>&1 | tee -a "$LOG" || warn "Failed to set ownership"
+    
+    # Set permissions (770 - owner and group can read/write/execute)
+    sudo chmod -R 770 "$model_dir" 2>&1 | tee -a "$LOG" || warn "Failed to set permissions"
+    
+    ai_info "✓ Model directory created: $model_dir"
+    
+    # Display storage info
+    local storage_info
+    storage_info=$(df -h "$model_dir" 2>/dev/null | tail -1 | awk '{print $4 " available of " $2 " total"}')
+    ai_info "Storage: $storage_info"
+
+    # ========================================
+    # SYSTEMD SERVICE CONFIGURATION
+    # ========================================
+    
+    ai_info "Creating Ollama systemd service..."
+    
+    sudo tee /etc/systemd/system/ollama.service > /dev/null <<OLLAMA_SERVICE
+[Unit]
+Description=Ollama Service
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/ollama serve
+User=ollama
+Group=ollama
+Restart=always
+RestartSec=3
+Environment="PATH=\$PATH"
+Environment="OLLAMA_MODELS=$model_dir"
+
+[Install]
+WantedBy=multi-user.target
+OLLAMA_SERVICE
+
+    ai_info "✓ Systemd service created with custom model path"
+
+    # ========================================
+    # DOCKER NVIDIA RUNTIME
+    # ========================================
+    
+    ai_info "Configuring Docker NVIDIA runtime..."
+    sudo nvidia-ctk runtime configure --runtime=docker 2>&1 | tee -a "$LOG" || warn "Failed to configure NVIDIA runtime"
+
+    # ========================================
+    # ENABLE AND START SERVICE
+    # ========================================
+    
+    ai_info "Enabling and starting Ollama service..."
+    
+    sudo systemctl daemon-reload
+    sudo systemctl enable ollama 2>&1 | tee -a "$LOG"
     
     mark_completed "ai_ml"
     ai_info "✓ AI/ML stack installed"

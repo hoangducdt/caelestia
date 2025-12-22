@@ -1,404 +1,421 @@
-# Caelestia Docker Stack - CachyOS Edition
+# 🏠 Homelab Docker Compose Stack
 
-Hệ thống Docker tích hợp hoàn chỉnh cho CachyOS với Stable Diffusion Web UI, được tối ưu hóa cho:
-- **Hardware**: ROG STRIX B550-XE + Ryzen 7 5800X + RTX 3060 12GB
-- **OS**: CachyOS (Arch Linux) + Hyprland
-- **GPU**: NVIDIA RTX 3060 12GB VRAM
+Complete Docker Compose setup for CachyOS + Hyprland + Caelestia with RTX 3060 12GB
 
-## 🚀 Tính năng chính
+## 📋 Services Included
 
-### AI & Machine Learning
-- **Stable Diffusion Web UI** - Tạo ảnh AI với RTX 3060
-- **ComfyUI** - Node-based workflow cho Stable Diffusion
-- **Open WebUI** - Giao diện chat với LLM local (LM Studio, Ollama)
-- **n8n** - Tự động hóa workflow với AI
+### 🔐 Reverse Proxy & Networking
+- **Nginx Proxy Manager** - Easy SSL and reverse proxy management
+- **Cloudflare DDNS** - Automatic DNS updates
 
-### Quản lý & Utilities
-- **Nginx Proxy Manager** - Reverse proxy với SSL tự động
-- **Paperless-ngx** - Quản lý tài liệu với OCR
-- **FileBrowser** - Quản lý file qua web
-- **Syncthing** - Đồng bộ file giữa các thiết bị
-- **Duplicati** - Backup tự động
+### 🛠️ Management & Monitoring
+- **Portainer** - Container management UI
+- **Watchtower** - Automatic container updates
+- **Autoheal** - Automatic container healing
+- **DIUN** - Docker image update notifications
+- **Dozzle** - Real-time log viewer
 
-### Database & Cache
-- **PostgreSQL 16** - Database chính
-- **Redis 7** - Cache và message queue
-- **MariaDB** - Database cho NPM
+### 📊 Observability
+- **Grafana** - Metrics visualization
+- **Prometheus** - Metrics collection
+- **Netdata** - Real-time performance monitoring
+- **Uptime Kuma** - Uptime monitoring
 
-### Monitoring & Maintenance
-- **Watchtower** - Auto-update containers
-- **Diun** - Thông báo update
-- **Autoheal** - Tự động restart unhealthy containers
+### 🔒 Security
+- **CrowdSec** - Behavioral IPS
+- **Authelia** - SSO authentication
 
-## 📋 Yêu cầu hệ thống
+### 🗄️ Databases
+- **PostgreSQL** - Primary relational database
+- **MariaDB** - MySQL-compatible database
+- **Redis** - In-memory data store
 
-### Phần cứng tối thiểu
-- CPU: 4 cores (recommended: 8+ cores như Ryzen 7 5800X)
-- RAM: 16GB (recommended: 32GB)
-- GPU: NVIDIA RTX 3060 12GB hoặc tương đương
-- Storage: 
-  - 100GB cho Docker images/volumes
-  - 200GB+ cho Stable Diffusion models
-  - SSD/NVMe recommended cho models và outputs
+### 🤖 Automation & Workflows
+- **n8n** - Workflow automation
 
-### Phần mềm
-- CachyOS hoặc Arch Linux
-- **Docker Desktop** (đã cài đặt)
-- NVIDIA drivers (nvidia-dkms)
-- nvidia-container-toolkit
+### 🧰 Utilities & Tools
+- **IT-Tools** - Developer tools collection
+- **Homarr** - Dashboard homepage
+- **File Browser** - Web-based file manager
+- **Snippet Box** - Code snippet manager
+- **Change Detection** - Website change monitoring
+- **Playwright Chrome** - Browser automation
+- **Wetty** - Web-based terminal
 
-## 🔧 Cài đặt
+### 🤖 AI & ML (GPU-Accelerated)
+- **Open WebUI** - ChatGPT-like interface for local LLMs
+- **ComfyUI** - Node-based Stable Diffusion UI
+- **Stable Diffusion WebUI** - Image generation
 
-### 1. Kiểm tra Docker Desktop và NVIDIA Container Toolkit
+### 💾 Backup & Sync
+- **PostgreSQL Backup** - Automated database backups
+- **Duplicati** - Backup solution
+- **Syncthing** - File synchronization
+
+### 📄 Document Management
+- **Paperless-ngx** - Document management system
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+1. **Docker & Docker Compose** (already installed via install.sh)
+2. **NVIDIA Container Toolkit** (already installed via install.sh)
+3. **Sufficient disk space** (recommended 100GB+ free)
+
+### Installation Steps
+
+1. **Clone or download these files to your homelab directory:**
+   ```bash
+   mkdir -p ~/homelab
+   cd ~/homelab
+   # Copy docker-compose.yml, .env.example, homelab.sh here
+   ```
+
+2. **Create your .env file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Generate secure keys:**
+   ```bash
+   chmod +x homelab.sh
+   ./homelab.sh keys
+   ```
+
+4. **Edit .env file with your values:**
+   ```bash
+   nano .env  # or use your preferred editor
+   ```
+
+   **Required variables to configure:**
+   - `POSTGRES_PASSWORD` - PostgreSQL password
+   - `REDIS_PASSWORD` - Redis password
+   - `MYSQL_ROOT_PASSWORD` - MariaDB root password
+   - `N8N_BASIC_AUTH_PASSWORD` - n8n authentication
+   - `PAPERLESS_SECRET_KEY` - Paperless-ngx secret
+   - `PAPERLESS_ADMIN_PASSWORD` - Paperless admin password
+   
+   **Optional but recommended:**
+   - Cloudflare credentials (for DDNS)
+   - Authelia secrets (for SSO)
+   - OpenAI API key (for Open WebUI)
+
+5. **Create prometheus directory and config:**
+   ```bash
+   mkdir -p prometheus
+   # Copy prometheus.yml to prometheus/ directory
+   ```
+
+6. **Start the stack:**
+   ```bash
+   ./homelab.sh start
+   ```
+
+## 📖 Usage
+
+### Management Script Commands
 
 ```bash
-# Kiểm tra Docker Desktop đã chạy
-docker --version
-docker compose version
-
-# Install NVIDIA drivers (nếu chưa có)
-sudo pacman -S nvidia-dkms nvidia-utils nvidia-settings
-
-# Install nvidia-container-toolkit
-sudo pacman -S nvidia-container-toolkit
-
-# Restart Docker Desktop để load nvidia-container-toolkit
-# Hoặc restart qua GUI: Docker Desktop → Settings → Quit Docker Desktop
-# Sau đó mở lại Docker Desktop
+./homelab.sh start          # Start all services
+./homelab.sh stop           # Stop all services
+./homelab.sh restart        # Restart all services
+./homelab.sh restart nginx-proxy-manager  # Restart specific service
+./homelab.sh status         # Show service status
+./homelab.sh logs           # Show all logs
+./homelab.sh logs grafana   # Show logs for specific service
+./homelab.sh update         # Update all images and containers
+./homelab.sh backup         # Backup all volumes
+./homelab.sh stats          # Show resource usage
+./homelab.sh urls           # Show all service URLs
+./homelab.sh cleanup        # Clean up Docker
+./homelab.sh keys           # Generate secure keys
+./homelab.sh help           # Show help
 ```
 
-### 2. Kiểm tra GPU
+### Service Access URLs
 
+After starting, access services at:
+
+| Service | URL | Default Credentials |
+|---------|-----|---------------------|
+| Nginx Proxy Manager | http://localhost:81 | admin@example.com / changeme |
+| Portainer | http://localhost:9000 | Set on first run |
+| Grafana | http://localhost:3000 | admin / admin |
+| Prometheus | http://localhost:9090 | - |
+| Netdata | http://localhost:19999 | - |
+| Uptime Kuma | http://localhost:3001 | Set on first run |
+| Dozzle | http://localhost:8888 | - |
+| CrowdSec | http://localhost:8080 | - |
+| Authelia | http://localhost:9091 | Configure via config |
+| n8n | http://localhost:5678 | From .env |
+| IT-Tools | http://localhost:8282 | - |
+| Homarr | http://localhost:7575 | - |
+| File Browser | http://localhost:8081 | admin / admin |
+| Snippet Box | http://localhost:5000 | - |
+| Change Detection | http://localhost:5050 | - |
+| Wetty | http://localhost:3002 | SSH credentials |
+| Open WebUI | http://localhost:3030 | Register on first run |
+| ComfyUI | http://localhost:8188 | - |
+| SD WebUI | http://localhost:7860 | - |
+| Duplicati | http://localhost:8200 | - |
+| Syncthing | http://localhost:8384 | - |
+| Paperless-ngx | http://localhost:8010 | From .env |
+
+## 🎨 Initial Configuration
+
+### 1. Nginx Proxy Manager
+1. Access http://localhost:81
+2. Login with: `admin@example.com` / `changeme`
+3. Change admin password immediately
+4. Add proxy hosts for your services
+5. Configure SSL certificates (Let's Encrypt)
+
+### 2. Portainer
+1. Access http://localhost:9000
+2. Create admin account
+3. Connect to local Docker environment
+
+### 3. Grafana
+1. Access http://localhost:3000
+2. Login: admin / admin
+3. Add Prometheus data source:
+   - URL: http://prometheus:9090
+4. Import dashboards (recommended):
+   - Docker Container & Host Metrics (ID: 10619)
+   - Node Exporter Full (ID: 1860)
+   - Netdata (ID: 2701)
+
+### 4. Uptime Kuma
+1. Access http://localhost:3001
+2. Create admin account
+3. Add monitors for all your services
+
+### 5. n8n
+1. Access http://localhost:5678
+2. Login with credentials from .env
+3. Start creating workflows
+
+### 6. Open WebUI
+1. Install Ollama on host:
+   ```bash
+   curl -fsSL https://ollama.com/install.sh | sh
+   ```
+2. Pull a model:
+   ```bash
+   ollama pull llama3.2
+   ```
+3. Access http://localhost:3030
+4. Register account
+5. Start chatting
+
+### 7. Paperless-ngx
+1. Access http://localhost:8010
+2. Login with credentials from .env
+3. Configure consumption folder
+4. Set up document types and tags
+
+## 🔧 Advanced Configuration
+
+### Enable GPU for AI Services
+
+The docker-compose.yml already includes GPU support for:
+- ComfyUI
+- Stable Diffusion WebUI
+
+Verify GPU access:
 ```bash
-# Test GPU trong Docker
-docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
-
-# Nếu thành công, bạn sẽ thấy thông tin GPU
+docker exec -it comfyui nvidia-smi
 ```
 
-### 3. Cấu hình Environment Variables
+### Backup Strategy
 
+1. **Automated PostgreSQL backups:**
+   - Configured via postgres-backup service
+   - Daily backups kept for 7 days
+   - Weekly backups kept for 4 weeks
+   - Monthly backups kept for 6 months
+
+2. **Manual volume backup:**
+   ```bash
+   ./homelab.sh backup
+   ```
+
+3. **Duplicati for selective backups:**
+   - Configure via http://localhost:8200
+   - Set up encrypted backups to cloud storage
+
+### Resource Limits
+
+The stack is optimized for:
+- **CPU:** Ryzen 7 5800X (8C/16T)
+- **RAM:** 32GB recommended minimum
+- **GPU:** RTX 3060 12GB
+- **Storage:** SSD recommended for volumes
+
+Monitor resources:
 ```bash
-# Copy file example
-cp _env .env
-
-# Generate passwords
-for var in POSTGRES_PASSWORD REDIS_PASSWORD NPM_DB_PASSWORD MYSQL_ROOT_PASSWORD ADMIN_PASSWORD PAPERLESS_SECRET_KEY WEBUI_SECRET_KEY; do
-  echo "$var=$(openssl rand -base64 32)" >> .env
-done
-
-# Set correct permissions
-chmod 600 .env
-
-# Edit with your settings
-nano .env  # hoặc vim/kate
+./homelab.sh stats
 ```
 
-**Quan trọng**: Cập nhật các giá trị sau trong `.env`:
-- `DOMAIN` - Domain của bạn (hoặc localhost)
-- `SSH_USER` - Username CachyOS của bạn
-- `CLOUDFLARE_API_KEY` - Nếu dùng Cloudflare
-- `SD_MODELS_PATH` - Đường dẫn lưu models SD (recommended: SSD riêng)
-- `SD_OUTPUTS_PATH` - Đường dẫn lưu outputs
+### Network Configuration
 
-### 4. Tạo thư mục cần thiết
+**Static IPs assigned (172.20.0.0/16):**
+- Prevents IP conflicts
+- Consistent service discovery
+- Easy firewall rules
 
+**Exposed ports:**
+- Only necessary ports are exposed
+- Use Nginx Proxy Manager for external access
+- Consider setting up VPN (WireGuard) for secure remote access
+
+## 🔐 Security Best Practices
+
+1. **Change all default passwords in .env**
+2. **Use strong, unique passwords (use ./homelab.sh keys)**
+3. **Enable Authelia for SSO**
+4. **Configure CrowdSec for IPS**
+5. **Set up SSL certificates via Nginx Proxy Manager**
+6. **Restrict Docker socket access**
+7. **Regular backups**
+8. **Keep containers updated**
+9. **Use firewall rules (UFW/firewalld)**
+10. **Monitor with Uptime Kuma and Grafana**
+
+## 📝 Maintenance
+
+### Regular Tasks
+
+**Daily (automated):**
+- Watchtower checks for updates
+- PostgreSQL backups
+- Container health checks
+
+**Weekly:**
 ```bash
-# Tạo thư mục cho Stable Diffusion
-mkdir -p ./sd-models/Stable-diffusion
-mkdir -p ./sd-models/Lora
-mkdir -p ./sd-models/VAE
-mkdir -p ./sd-models/embeddings
-mkdir -p ./sd-outputs
-
-# Tạo thư mục init scripts
-mkdir -p ./init-scripts/postgres
-
-# Set permissions
-sudo chown -R 1000:1000 ./sd-models ./sd-outputs
+./homelab.sh update    # Update all containers
+./homelab.sh cleanup   # Clean up unused resources
 ```
 
-### 5. Download Stable Diffusion Models (Optional)
-
+**Monthly:**
 ```bash
-# Download SD 1.5 (4GB)
-cd ./sd-models/Stable-diffusion
-wget https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors
-
-# Hoặc download SDXL (6.5GB) - cần --medvram
-# wget https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors
-
-cd ../..
+./homelab.sh backup    # Full backup
+docker system df       # Check disk usage
 ```
 
-### 6. Khởi động services
+### Troubleshooting
 
+**Container won't start:**
 ```bash
-# Validate config
-docker compose config
-
-# Start databases first
-docker compose up -d postgres redis npm-db
-
-# Wait 30 seconds for databases to initialize
-sleep 30
-
-# Start remaining services
-docker compose up -d
-
-# Check status
-docker compose ps
-
-# View logs
-docker compose logs -f
+./homelab.sh logs [service-name]
+docker compose ps -a
 ```
 
-## 🎨 Sử dụng Stable Diffusion Web UI
-
-### Truy cập
-- URL: `http://localhost:7860`
-- Hoặc qua Nginx Proxy Manager nếu đã cấu hình
-
-### Cài đặt Extensions (Recommended)
-
-1. Truy cập **Extensions** tab
-2. Cài đặt các extension sau:
-   - **ControlNet** - Control image generation
-   - **Dynamic Prompts** - Advanced prompting
-   - **Ultimate SD Upscale** - High-quality upscaling
-   - **Tag Autocomplete** - Auto-complete prompts
-   - **Image Browser** - Browse generated images
-   - **Aspect Ratio Helper** - Quick aspect ratio selection
-
-### Cấu hình tối ưu cho RTX 3060 12GB
-
-**Settings → User Interface:**
-- Quicksettings list: `sd_model_checkpoint,CLIP_stop_at_last_layers`
-
-**Settings → System:**
-- Memory: `medvram` (đã set trong docker-compose)
-- VRAM: Giữ mặc định
-- xFormers: Enabled (đã set)
-
-**Settings → Optimizations:**
-- Cross attention optimization: `xFormers`
-- Token merging: Enable nếu muốn tăng tốc
-
-### Recommendations cho RTX 3060
-
-**SD 1.5:**
-- Resolution: 512x512 hoặc 768x768
-- Batch size: 2-4
-- CFG Scale: 7-11
-- Steps: 20-30
-
-**SDXL:**
-- Resolution: 1024x1024
-- Batch size: 1
-- CFG Scale: 7-9
-- Steps: 25-35
-- **Quan trọng**: Dùng `--medvram` (đã enabled)
-
-## 🔧 ComfyUI
-
-### Truy cập
-- URL: `http://localhost:8188`
-
-### Features
-- Node-based workflow
-- Chia sẻ models với SD WebUI
-- Tốc độ nhanh hơn cho complex workflows
-- API support
-
-### Custom Nodes (Recommended)
-
+**Database connection issues:**
 ```bash
-# Vào container
-docker exec -it comfyui bash
-
-# Cài đặt ComfyUI Manager
-cd /root/ComfyUI/custom_nodes
-git clone https://github.com/ltdrdata/ComfyUI-Manager.git
-
-# Restart container
-docker restart comfyui
+docker compose restart postgres redis mariadb
 ```
 
-## 🌐 Nginx Proxy Manager
-
-### First Login
-1. Truy cập: `http://localhost:81`
-2. Default credentials:
-   - Email: `admin@example.com`
-   - Password: `changeme`
-3. Đổi password ngay lập tức!
-
-### Cấu hình Proxy Hosts
-
-**Stable Diffusion:**
-- Domain: `sd.yourdomain.com`
-- Forward Hostname/IP: `stable-diffusion-webui`
-- Forward Port: `7860`
-- Enable SSL với Let's Encrypt
-
-**ComfyUI:**
-- Domain: `comfy.yourdomain.com`
-- Forward Hostname/IP: `comfyui`
-- Forward Port: `8188`
-
-**Các services khác tương tự**
-
-## 📊 Monitoring & Maintenance
-
-### Xem logs
-
+**GPU not detected:**
 ```bash
-# All services
-docker compose logs -f
-
-# Specific service
-docker compose logs -f stable-diffusion-webui
-
-# GPU usage
-watch -n 1 nvidia-smi
-```
-
-### Backup
-
-Duplicati tự động backup:
-- PostgreSQL databases
-- Redis data
-- n8n workflows
-- Paperless documents
-- Stable Diffusion models và outputs
-
-Truy cập: Configure qua Nginx Proxy Manager
-
-### Updates
-
-Watchtower tự động update containers lúc 4 AM hàng ngày.
-
-Manual update:
-```bash
-docker compose pull
-docker compose up -d
-```
-
-## 🐛 Troubleshooting
-
-### GPU không được detect
-
-```bash
-# Check nvidia-smi
 nvidia-smi
-
-# Check trong Docker
-docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
-
-# Reinstall nvidia-container-toolkit
-sudo pacman -S nvidia-container-toolkit
-sudo systemctl restart docker
+docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
 ```
 
-### Out of Memory (OOM)
-
-**SDXL:**
+**Port conflicts:**
 ```bash
-# Edit docker-compose.yml, thêm CLI args:
---lowvram  # Nếu --medvram vẫn OOM
---no-half   # Giảm quality nhưng ít VRAM hơn
+sudo netstat -tlnp | grep [port-number]
 ```
 
-**SD 1.5:**
-- Giảm batch size
-- Giảm resolution
-- Close browser tabs sử dụng GPU
-
-### Slow Generation
-
+**Reset service data:**
 ```bash
-# Check GPU usage
-watch -n 1 nvidia-smi
-
-# Check xFormers
-docker compose logs stable-diffusion-webui | grep xformers
-
-# Restart với force xformers
-docker compose restart stable-diffusion-webui
+docker compose down
+docker volume rm [volume-name]
+docker compose up -d
 ```
 
-### Permission Errors
+## 🔄 Updating
 
+### Update all services:
 ```bash
-# Fix ownership
-sudo chown -R 1000:1000 ./sd-models ./sd-outputs
-
-# Check permissions
-ls -la
+./homelab.sh update
 ```
 
-### Container không start
-
+### Update specific service:
 ```bash
-# Check logs
-docker compose logs service-name
-
-# Remove and recreate
-docker compose stop service-name
-docker compose rm service-name
-docker compose up -d service-name
+docker compose pull [service-name]
+docker compose up -d [service-name]
 ```
 
-## 📁 Cấu trúc thư mục
+## 📊 Monitoring Setup
 
-```
-.
-├── docker-compose.yml       # Main compose file
-├── .env                     # Environment variables (KHÔNG commit!)
-├── init-scripts/
-│   └── postgres/           # PostgreSQL init scripts
-├── sd-models/              # Stable Diffusion models
-│   ├── Stable-diffusion/   # Model checkpoints
-│   ├── Lora/              # LoRA models
-│   ├── VAE/               # VAE models
-│   └── embeddings/        # Textual inversions
-└── sd-outputs/            # Generated images
-```
+### Grafana Dashboards
 
-## 🔐 Security Checklist
+Import these dashboard IDs in Grafana:
 
-- [ ] Đã đổi tất cả passwords mặc định
-- [ ] `.env` có permission 600
-- [ ] Tất cả passwords ≥ 32 characters
-- [ ] Đã enable firewall (`ufw`)
-- [ ] Đã configure Cloudflare proxy (nếu dùng)
-- [ ] Đã enable fail2ban (optional)
-- [ ] Backup `.env` file an toàn
+1. **Docker monitoring:**
+   - Dashboard ID: 10619 (Docker Container & Host Metrics)
+   - Dashboard ID: 893 (Docker monitoring)
 
-## 📚 Resources
+2. **System metrics:**
+   - Dashboard ID: 1860 (Node Exporter Full)
+   - Dashboard ID: 11074 (Node Exporter)
 
-### Stable Diffusion
-- [Civitai](https://civitai.com/) - Models, LoRAs, embeddings
-- [Hugging Face](https://huggingface.co/models?pipeline_tag=text-to-image) - Official models
-- [SD WebUI Wiki](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki)
+3. **PostgreSQL:**
+   - Dashboard ID: 9628 (PostgreSQL Database)
 
-### ComfyUI
-- [ComfyUI Examples](https://comfyanonymous.github.io/ComfyUI_examples/)
-- [Custom Nodes](https://github.com/ltdrdata/ComfyUI-Manager)
+4. **Redis:**
+   - Dashboard ID: 11835 (Redis Dashboard)
 
-### CachyOS
-- [CachyOS Wiki](https://wiki.cachyos.org/)
-- [CachyOS Discord](https://discord.gg/cachyos)
+### Uptime Kuma Monitors
+
+Add HTTP(s) monitors for all services:
+- Set check interval to 60 seconds
+- Configure notifications (Discord, Telegram, email)
+- Set up heartbeat for critical services
+
+## 🐛 Known Issues
+
+1. **First start may be slow** - Containers need to pull images and initialize
+2. **GPU containers require nvidia-container-toolkit** - Already installed via install.sh
+3. **Some services need manual configuration** - Follow initial configuration steps
+4. **Volume permissions** - Run with proper user permissions (PUID/PGID 1000)
 
 ## 🤝 Contributing
 
-Nếu bạn có improvements hoặc fixes, welcome to contribute!
+Feel free to submit issues and enhancement requests!
 
-## 📝 License
+## 📄 License
 
-MIT License - Feel free to use and modify
+This configuration is provided as-is for personal use.
 
 ## 🙏 Credits
 
-Based on the Caelestia installer by hoangducdt
-Optimized for CachyOS + Hyprland + RTX 3060 12GB
+- CachyOS Team
+- Hyprland Community
+- Caelestia Project
+- All the amazing open-source projects included
+
+## 📞 Support
+
+For issues related to:
+- **Docker Compose setup:** Check this README
+- **Individual services:** Refer to their official documentation
+- **CachyOS/Hyprland:** Visit their respective communities
+
+## 🔗 Useful Links
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [Nginx Proxy Manager](https://nginxproxymanager.com/)
+- [Portainer](https://www.portainer.io/)
+- [Grafana](https://grafana.com/)
+- [n8n](https://n8n.io/)
+- [Paperless-ngx](https://docs.paperless-ngx.com/)
+
+---
+
+**Last Updated:** December 2025
+**Compatible with:** CachyOS + Hyprland + Caelestia
+**Hardware:** ROG STRIX B550-XE | Ryzen 7 5800X | RTX 3060 12GB

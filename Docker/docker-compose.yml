@@ -1,734 +1,270 @@
 version: '3.8'
 
+networks:
+  homelab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  npm_data:
+  npm_ssl:
+  npm_db:
+  portainer_data:
+  grafana_data:
+  prometheus_data:
+  crowdsec_config:
+  crowdsec_data:
+  authelia_data:
+  netdata_config:
+  netdata_cache:
+  n8n_data:
+  redis_data:
+  postgres_data:
+  postgres_backup_data:
+  it-tools_data:
+  homarr_config:
+  homarr_icons:
+  homarr_data:
+  dozzle_data:
+  uptime-kuma_data:
+  open-webui_data:
+  comfyui_data:
+  sd-webui_data:
+  filebrowser_data:
+  snippet-box_data:
+  changedetection_data:
+  wetty_data:
+  duplicati_config:
+  duplicati_data:
+  paperless_data:
+  paperless_media:
+  paperless_export:
+  paperless_consume:
+  mariadb_data:
+  syncthing_data:
+
 services:
-  # ==================== REVERSE PROXY & SSL ====================
+  # ===== REVERSE PROXY & NETWORKING =====
   
   nginx-proxy-manager:
-    image: 'jc21/nginx-proxy-manager:2.11.3'  # Pin version for stability
+    image: jc21/nginx-proxy-manager:latest
     container_name: nginx-proxy-manager
     restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.2
     ports:
-      - '80:80'
-      - '443:443'
-      - '81:81'
+      - "80:80"
+      - "443:443"
+      - "81:81"
     environment:
-      TZ: "Asia/Bangkok"
-      DB_MYSQL_HOST: "npm-db"
-      DB_MYSQL_PORT: 3306
-      DB_MYSQL_USER: "npm"
-      DB_MYSQL_PASSWORD: ${NPM_DB_PASSWORD:?NPM_DB_PASSWORD is required}
-      DB_MYSQL_NAME: "npm"
-      DISABLE_IPV6: 'false'  # Native Linux - IPv6 enabled
+      - DB_SQLITE_FILE=/data/database.sqlite
+      - DISABLE_IPV6=true
     volumes:
       - npm_data:/data
-      - npm_letsencrypt:/etc/letsencrypt
-    depends_on:
-      npm-db:
-        condition: service_healthy
-    networks:
-      - proxy-network
+      - npm_ssl:/etc/letsencrypt
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:81"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "autoheal=true"
-      - "diun.enable=true"
-
-  npm-db:
-    image: 'jc21/mariadb-aria:11.4.2'  # Pin version
-    container_name: npm-db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
-      MYSQL_DATABASE: 'npm'
-      MYSQL_USER: 'npm'
-      MYSQL_PASSWORD: ${NPM_DB_PASSWORD:?NPM_DB_PASSWORD is required}
-      MARIADB_AUTO_UPGRADE: '1'
-      TZ: "Asia/Bangkok"
-    volumes:
-      - npm_mysql:/var/lib/mysql
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          memory: 128M
-    labels:
-      - "diun.enable=true"
-
-  paperless-ngx:
-    image: ghcr.io/paperless-ngx/paperless-ngx:2.13.5  # Pin version
-    container_name: paperless-ngx
-    restart: unless-stopped
-    expose:
-      - "8000"
-    environment:
-      PAPERLESS_REDIS: "redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379"
-      PAPERLESS_DBHOST: "postgres"
-      PAPERLESS_DBNAME: "paperless"
-      PAPERLESS_DBUSER: "postgres"
-      PAPERLESS_DBPASS: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      PAPERLESS_OCR_LANGUAGE: "eng+vie"
-      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY:?PAPERLESS_SECRET_KEY is required}
-      PAPERLESS_TIME_ZONE: "Asia/Bangkok"
-      PAPERLESS_ADMIN_USER: "admin"
-      PAPERLESS_ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
-      PAPERLESS_URL: "https://${DOMAIN:-localhost}/paperless"
-      PAPERLESS_TASK_WORKERS: "4"  # Ryzen 7 5800X: 8C/16T
-      PAPERLESS_THREADS_PER_WORKER: "2"
-      PAPERLESS_ENABLE_HTTP_REMOTE_USER: "false"
-      PAPERLESS_CONSUMPTION_DIR: "/usr/src/paperless/consume"
-      PAPERLESS_DATA_DIR: "/usr/src/paperless/data"
-      PAPERLESS_MEDIA_ROOT: "/usr/src/paperless/media"
-      PAPERLESS_FILENAME_FORMAT: "{created_year}/{correspondent}/{title}"
-      USERMAP_UID: "1000"
-      USERMAP_GID: "1000"
-    volumes:
-      - paperless_data:/usr/src/paperless/data
-      - paperless_media:/usr/src/paperless/media
-      - paperless_export:/usr/src/paperless/export
-      - paperless_consume:/usr/src/paperless/consume
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - proxy-network
-      - backend-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      test: ["CMD", "/bin/check-health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 90s
-    deploy:
-      resources:
-        limits:
-          cpus: '2'  # Ryzen optimization
-          memory: 3G
-        reservations:
-          memory: 2G
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     labels:
-      - "autoheal=true"
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  # ==================== BACKUP & MAINTENANCE ====================
-  
-  duplicati:
-    image: lscr.io/linuxserver/duplicati:2.1.0  # Pin version
-    container_name: duplicati
-    restart: unless-stopped
-    expose:
-      - "8200"
-    environment:
-      PUID: "1000"
-      PGID: "1000"
-      TZ: "Asia/Bangkok"
-      CLI_ARGS: "--webservice-port=8200 --webservice-interface=any"
-    volumes:
-      - duplicati_config:/config
-      - duplicati_backups:/backups
-      - postgres_data:/source/postgres:ro
-      - redis_data:/source/redis:ro
-      - n8n_data:/source/n8n:ro
-      - paperless_data:/source/paperless:ro
-      - stable_diffusion_models:/source/sd-models:ro
-      - stable_diffusion_outputs:/source/sd-outputs:ro
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8200"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 2G
-        reservations:
-          memory: 1G
-    labels:
-      - "diun.enable=true"
-
-  # Database backup tool
-  postgres-backup:
-    image: prodrigestivill/postgres-backup-local:16-alpine  # Pin version
-    container_name: postgres-backup
-    restart: unless-stopped
-    user: "postgres:postgres"
-    environment:
-      POSTGRES_HOST: "postgres"
-      POSTGRES_DB: "postgres,n8n,paperless"
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      SCHEDULE: "@daily"
-      BACKUP_KEEP_DAYS: "7"
-      BACKUP_KEEP_WEEKS: "4"
-      BACKUP_KEEP_MONTHS: "6"
-      HEALTHCHECK_PORT: "8080"
-      TZ: "Asia/Bangkok"
-    volumes:
-      - postgres_backups:/backups
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - backend-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 512M
-        reservations:
-          memory: 64M
-
-  # ==================== UTILITIES ====================
-  
   cloudflare-ddns:
     image: oznu/cloudflare-ddns:latest
     container_name: cloudflare-ddns
     restart: unless-stopped
-    environment:
-      API_KEY: ${CLOUDFLARE_API_KEY:?CLOUDFLARE_API_KEY is required}
-      ZONE: ${CLOUDFLARE_ZONE:?CLOUDFLARE_ZONE is required}
-      SUBDOMAIN: "${CLOUDFLARE_SUBDOMAIN:-@}"
-      PROXIED: "true"
-      RRTYPE: "A"
-      DELETE_ON_STOP: "false"
-      DNS_SERVER: "1.1.1.1"
     networks:
-      - proxy-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-        reservations:
-          memory: 32M
-
-  wetty:
-    image: wettyoss/wetty:2.5.0  # Pin version
-    container_name: wetty
-    restart: unless-stopped
-    expose:
-      - "3000"
+      - homelab
     environment:
-      SSHHOST: "${SSH_HOST:-localhost}"  # Native Linux
-      SSHPORT: "${SSH_PORT:-22}"
-      SSHUSER: "${SSH_USER:-root}"
-      TITLE: "Web Terminal"
-      BASE: "/terminal/"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 512M
-        reservations:
-          memory: 64M
+      - API_KEY=${CF_API_KEY}
+      - ZONE=${CF_ZONE}
+      - SUBDOMAIN=${CF_SUBDOMAIN:-@}
+      - PROXIED=${CF_PROXIED:-true}
+      - RRTYPE=A
+      - DELETE_ON_STOP=false
+      - INTERFACE=eth0
+      - CUSTOM_LOOKUP_CMD=
     labels:
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  changedetection:
-    image: ghcr.io/dgtlmoon/changedetection.io:0.47.06  # Pin version
-    container_name: changedetection
-    restart: unless-stopped
-    expose:
-      - "5000"
-    volumes:
-      - changedetection_data:/datastore
-    environment:
-      PLAYWRIGHT_DRIVER_URL: "ws://playwright-chrome:3000/?stealth=1&--disable-web-security=true"
-      TZ: "Asia/Bangkok"
-      BASE_URL: "https://${DOMAIN:-localhost}/changedetection"
-      USE_X_SETTINGS: "1"
-      HIDE_REFERER: "true"
-      FETCH_WORKERS: "2"
-    networks:
-      - proxy-network
-    depends_on:
-      playwright-chrome:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 512M
-        reservations:
-          memory: 128M
-    labels:
-      - "diun.enable=true"
+  # ===== MANAGEMENT & MONITORING =====
 
-  playwright-chrome:
-    image: browserless/chrome:1.61.1-puppeteer-21.4.1  # Pin version
-    container_name: playwright-chrome
-    restart: unless-stopped
-    expose:
-      - "3000"
-    environment:
-      SCREEN_WIDTH: "1920"
-      SCREEN_HEIGHT: "1080"
-      SCREEN_DEPTH: "16"
-      ENABLE_DEBUGGER: "false"
-      PREBOOT_CHROME: "true"
-      CONNECTION_TIMEOUT: "300000"
-      MAX_CONCURRENT_SESSIONS: "5"
-      CHROME_REFRESH_TIME: "3600000"
-      DEFAULT_BLOCK_ADS: "true"
-      DEFAULT_STEALTH: "true"
-      DEFAULT_HEADLESS: "true"
-      KEEP_ALIVE: "true"
-      TZ: "Asia/Bangkok"
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/pressure"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-        reservations:
-          memory: 256M
-    shm_size: '1gb'  # Important for Chrome
-
-  snippet-box:
-    image: pawelmalak/snippet-box:1.6.1  # Pin version
-    container_name: snippet-box
-    restart: unless-stopped
-    expose:
-      - "5000"
-    volumes:
-      - snippet-box_data:/app/data
-    environment:
-      TZ: "Asia/Bangkok"
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 256M
-        reservations:
-          memory: 64M
-    labels:
-      - "diun.enable=true"
-
-# =============================================================================
-# NETWORKS CONFIGURATION
-# =============================================================================
-networks:
-  proxy-network:
-    name: proxy-network
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.0.0/16
-          gateway: 172.20.0.1
-    driver_opts:
-      com.docker.network.bridge.name: br-proxy
-      com.docker.network.bridge.enable_ip_masquerade: "true"
-      com.docker.network.driver.mtu: "1500"
-  
-  backend-network:
-    name: backend-network
-    driver: bridge
-    internal: true
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.21.0.0/16
-          gateway: 172.21.0.1
-    driver_opts:
-      com.docker.network.bridge.name: br-backend
-
-# =============================================================================
-# VOLUMES CONFIGURATION
-# =============================================================================
-volumes:
-  # Nginx Proxy Manager
-  npm_data:
-    name: npm_data
-  npm_letsencrypt:
-    name: npm_letsencrypt
-  npm_mysql:
-    name: npm_mysql
-
-  # Security
-  authelia_config:
-    name: authelia_config
-  crowdsec_config:
-    name: crowdsec_config
-  crowdsec_data:
-    name: crowdsec_data
-
-  # Management
-  portainer_data:
-    name: portainer_data
-  watchtower_config:
-    name: watchtower_config
-  diun_data:
-    name: diun_data
-
-  # Monitoring
-  netdata_config:
-    name: netdata_config
-  netdata_lib:
-    name: netdata_lib
-  netdata_cache:
-    name: netdata_cache
-  prometheus_config:
-    name: prometheus_config
-  prometheus_data:
-    name: prometheus_data
-  grafana_data:
-    name: grafana_data
-  grafana_config:
-    name: grafana_config
-  uptime-kuma:
-    name: uptime-kuma
-
-  # Dashboard
-  homarr_configs:
-    name: homarr_configs
-  homarr_icons:
-    name: homarr_icons
-  homarr_data:
-    name: homarr_data
-
-  # Database
-  postgres_data:
-    name: postgres_data
-  postgres_backups:
-    name: postgres_backups
-  redis_data:
-    name: redis_data
-
-  # Automation
-  n8n_data:
-    name: n8n_data
-  n8n_files:
-    name: n8n_files
-  open-webui:
-    name: open-webui
-
-  # Files
-  filebrowser_data:
-    name: filebrowser_data
-  filebrowser_database:
-    name: filebrowser_database
-  filebrowser_config:
-    name: filebrowser_config
-  syncthing_data:
-    name: syncthing_data
-  syncthing_sync:
-    name: syncthing_sync
-  paperless_data:
-    name: paperless_data
-  paperless_media:
-    name: paperless_media
-  paperless_export:
-    name: paperless_export
-  paperless_consume:
-    name: paperless_consume
-
-  # Backup
-  duplicati_config:
-    name: duplicati_config
-  duplicati_backups:
-    name: duplicati_backups
-
-  # Utilities
-  changedetection_data:
-    name: changedetection_data
-  snippet-box_data:
-    name: snippet-box_data'
-          memory: 512M
-        reservations:
-          memory: 256M
-
-  # ==================== AUTHENTICATION & SECURITY ====================
-  
-  authelia:
-    image: authelia/authelia:4.38.10  # Pin version
-    container_name: authelia
-    restart: unless-stopped
-    expose:
-      - "9091"  # Don't expose publicly, only to proxy
-    volumes:
-      - authelia_config:/config
-    environment:
-      TZ: "Asia/Bangkok"
-      AUTHELIA_JWT_SECRET: ${AUTHELIA_JWT_SECRET:?AUTHELIA_JWT_SECRET is required}
-      AUTHELIA_SESSION_SECRET: ${AUTHELIA_SESSION_SECRET:?AUTHELIA_SESSION_SECRET is required}
-      AUTHELIA_STORAGE_ENCRYPTION_KEY: ${AUTHELIA_STORAGE_KEY:?AUTHELIA_STORAGE_KEY is required}
-      AUTHELIA_NOTIFIER_DISABLE_STARTUP_CHECK: 'true'
-      AUTHELIA_DEFAULT_REDIRECTION_URL: "https://${DOMAIN:-localhost}"
-      AUTHELIA_SESSION_DOMAIN: "${DOMAIN:-localhost}"
-      AUTHELIA_SESSION_REDIS_HOST: redis
-      AUTHELIA_SESSION_REDIS_PORT: 6379
-      AUTHELIA_SESSION_REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-      AUTHELIA_STORAGE_LOCAL_PATH: /config/db.sqlite3
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - proxy-network
-      - backend-network
-    healthcheck:
-      test: ["CMD", "authelia", "healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-        reservations:
-          memory: 256M
-    labels:
-      - "autoheal=true"
-      - "diun.enable=true"
-
-  crowdsec:
-    image: crowdsecurity/crowdsec:v1.6.3  # Pin version
-    container_name: crowdsec
-    restart: unless-stopped
-    environment:
-      COLLECTIONS: "crowdsecurity/nginx crowdsecurity/http-cve crowdsecurity/whitelist-good-actors"
-      TZ: "Asia/Bangkok"
-      GID: "1000"
-      DISABLE_ONLINE_API: "false"
-      ENROLL_KEY: "${CROWDSEC_ENROLL_KEY:-}"
-      BOUNCER_KEY_CUSTOM: "${CROWDSEC_BOUNCER_KEY:-}"
-    volumes:
-      - crowdsec_config:/etc/crowdsec
-      - crowdsec_data:/var/lib/crowdsec/data
-      - npm_data:/var/log/nginx:ro  # Read NPM logs
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "cscli", "version"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          memory: 128M
-    labels:
-      - "diun.enable=true"
-
-  # ==================== CONTAINER MANAGEMENT ====================
-  
   portainer:
-    image: portainer/portainer-ce:2.21.4-alpine  # Pin version + alpine for WSL2
+    image: portainer/portainer-ce:latest
     container_name: portainer
     restart: unless-stopped
-    expose:
-      - "9000"
-      - "9443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro  # Read-only for security
-      - portainer_data:/data
     networks:
-      - proxy-network
-    command: --http-disabled  # Force HTTPS
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9000/api/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          memory: 128M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      homelab:
+        ipv4_address: 172.20.0.3
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
     labels:
-      - "autoheal=true"
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
   watchtower:
-    image: containrrr/watchtower:1.7.1  # Pin version
+    image: containrrr/watchtower:latest
     container_name: watchtower
     restart: unless-stopped
+    networks:
+      - homelab
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - watchtower_config:/config
     environment:
-      TZ: "Asia/Bangkok"
-      WATCHTOWER_CLEANUP: "true"
-      WATCHTOWER_INCLUDE_RESTARTING: "true"
-      WATCHTOWER_INCLUDE_STOPPED: "false"
-      WATCHTOWER_REVIVE_STOPPED: "false"
-      WATCHTOWER_SCHEDULE: "0 0 4 * * *"  # 4 AM daily
-      WATCHTOWER_NOTIFICATIONS: "shoutrrr"
-      WATCHTOWER_NOTIFICATION_URL: "${WATCHTOWER_NOTIFICATION_URL:-}"
-      WATCHTOWER_LABEL_ENABLE: "true"
-      WATCHTOWER_ROLLING_RESTART: "true"
-      WATCHTOWER_TIMEOUT: "600s"
-      WATCHTOWER_HTTP_API_METRICS: "true"
-      WATCHTOWER_HTTP_API_TOKEN: "${WATCHTOWER_API_TOKEN:-watchtower}"
-    networks:
-      - proxy-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 256M
-        reservations:
-          memory: 64M
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=86400
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_NO_STARTUP_MESSAGE=false
+      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL}
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   autoheal:
-    image: willfarrell/autoheal:1.2.0  # Pin version
+    image: willfarrell/autoheal:latest
     container_name: autoheal
     restart: unless-stopped
-    environment:
-      AUTOHEAL_CONTAINER_LABEL: "autoheal"
-      AUTOHEAL_START_PERIOD: "60"
-      AUTOHEAL_INTERVAL: "30"
-      AUTOHEAL_DEFAULT_STOP_TIMEOUT: "10"
-      DOCKER_SOCK: "/var/run/docker.sock"
-      WEBHOOK_URL: "${AUTOHEAL_WEBHOOK_URL:-}"
+    networks:
+      - homelab
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - proxy-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-        reservations:
-          memory: 32M
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all
+      - AUTOHEAL_INTERVAL=60
+      - AUTOHEAL_START_PERIOD=300
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
+      - TZ=Asia/Ho_Chi_Minh
 
   diun:
-    image: crazymax/diun:4.28.0  # Pin version
+    image: crazymax/diun:latest
     container_name: diun
     restart: unless-stopped
+    networks:
+      - homelab
+    command: serve
     volumes:
-      - diun_data:/data
+      - ./diun:/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      TZ: "Asia/Bangkok"
-      LOG_LEVEL: "info"
-      DIUN_WATCH_SCHEDULE: "0 */6 * * *"  # Every 6 hours
-      DIUN_PROVIDERS_DOCKER: "true"
-      DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: "true"
-      DIUN_NOTIF_WEBHOOK_ENDPOINT: "${DIUN_WEBHOOK_URL:-}"
-    networks:
-      - proxy-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 256M
-        reservations:
-          memory: 64M
+      - TZ=Asia/Ho_Chi_Minh
+      - LOG_LEVEL=info
+      - LOG_JSON=false
+      - DIUN_WATCH_WORKERS=20
+      - DIUN_WATCH_SCHEDULE=0 */6 * * *
+      - DIUN_PROVIDERS_DOCKER=true
+      - DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  # ==================== MONITORING & LOGGING ====================
-  
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.4
+    ports:
+      - "8888:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dozzle_data:/data
+    environment:
+      - DOZZLE_LEVEL=info
+      - DOZZLE_TAILSIZE=500
+      - DOZZLE_FILTER=status=running
+      - DOZZLE_BASE=/
+      - TZ=Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== OBSERVABILITY =====
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.5
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - TZ=Asia/Ho_Chi_Minh
+    user: "472"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.6
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    user: "65534"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
   netdata:
-    image: netdata/netdata:v1.47.5  # Pin version
+    image: netdata/netdata:latest
     container_name: netdata
     restart: unless-stopped
-    pid: host
-    expose:
-      - "19999"
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.7
+    ports:
+      - "19999:19999"
     cap_add:
       - SYS_PTRACE
       - SYS_ADMIN
@@ -736,7 +272,6 @@ volumes:
       - apparmor:unconfined
     volumes:
       - netdata_config:/etc/netdata
-      - netdata_lib:/var/lib/netdata
       - netdata_cache:/var/cache/netdata
       - /etc/passwd:/host/etc/passwd:ro
       - /etc/group:/host/etc/group:ro
@@ -744,622 +279,516 @@ volumes:
       - /sys:/host/sys:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      TZ: "Asia/Bangkok"
-      DOCKER_HOST: "unix:///var/run/docker.sock"
-      NETDATA_CLAIM_TOKEN: "${NETDATA_CLAIM_TOKEN:-}"
-      NETDATA_CLAIM_URL: "https://app.netdata.cloud"
-      NETDATA_CLAIM_ROOMS: "${NETDATA_CLAIM_ROOMS:-}"
-      NETDATA_DISABLE_TELEMETRY: "1"
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          memory: 256M
+      - NETDATA_CLAIM_TOKEN=${NETDATA_CLAIM_TOKEN}
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=${NETDATA_CLAIM_ROOMS}
+      - DOCKER_HOST=/var/run/docker.sock
+      - TZ=Asia/Ho_Chi_Minh
     labels:
-      - "autoheal=true"
-      - "diun.enable=true"
-
-  prometheus:
-    image: prom/prometheus:v2.55.1  # Pin version
-    container_name: prometheus
-    restart: unless-stopped
-    user: "nobody"  # Security: run as nobody
-    expose:
-      - "9090"
-    volumes:
-      - prometheus_config:/etc/prometheus
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    networks:
-      - proxy-network
-      - backend-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-        reservations:
-          memory: 256M
-    labels:
-      - "autoheal=true"
-      - "diun.enable=true"
-
-  grafana:
-    image: grafana/grafana:11.3.2  # Pin version
-    container_name: grafana
-    restart: unless-stopped
-    user: "472"  # Grafana user
-    expose:
-      - "3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: "admin"
-      GF_SECURITY_ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_USERS_ALLOW_ORG_CREATE: "false"
-      GF_SECURITY_DISABLE_GRAVATAR: "true"
-      GF_ANALYTICS_REPORTING_ENABLED: "false"
-      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
-      GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-clock-panel"
-      GF_SERVER_ROOT_URL: "https://${DOMAIN:-localhost}/grafana"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-      TZ: "Asia/Bangkok"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - grafana_config:/etc/grafana
-    depends_on:
-      prometheus:
-        condition: service_healthy
-    networks:
-      - proxy-network
-      - backend-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          memory: 128M
-    labels:
-      - "autoheal=true"
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
   uptime-kuma:
-    image: louislam/uptime-kuma:1.23.15  # Pin version
+    image: louislam/uptime-kuma:latest
     container_name: uptime-kuma
     restart: unless-stopped
-    expose:
-      - "3001"
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.8
+    ports:
+      - "3001:3001"
     volumes:
-      - uptime-kuma:/app/data
+      - uptime-kuma_data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      TZ: "Asia/Bangkok"
-      UPTIME_KUMA_DISABLE_FRAME_SAMEORIGIN: "false"
-    networks:
-      - proxy-network
+      - TZ=Asia/Ho_Chi_Minh
     healthcheck:
-      test: ["CMD", "node", "extra/healthcheck"]
-      interval: 30s
+      test: ["CMD-SHELL", "node extra/healthcheck.js"]
+      interval: 60s
       timeout: 10s
       retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 256M
-        reservations:
-          memory: 64M
+      start_period: 180s
     labels:
-      - "autoheal=true"
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  dozzle:
-    image: amir20/dozzle:v8.7.5  # Pin version
-    container_name: dozzle
+  # ===== SECURITY =====
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
     restart: unless-stopped
-    expose:
-      - "8080"
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.9
+    ports:
+      - "8080:8080"
+      - "6060:6060"
     volumes:
+      - crowdsec_config:/etc/crowdsec
+      - crowdsec_data:/var/lib/crowdsec/data
+      - /var/log:/var/log:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      DOZZLE_LEVEL: "info"
-      DOZZLE_TAILSIZE: "300"
-      DOZZLE_NO_ANALYTICS: "true"
-      DOZZLE_ENABLE_ACTIONS: "false"  # Disable dangerous actions
-      DOZZLE_FILTER: "status=running"
-      DOZZLE_BASE: "/dozzle"
+      - COLLECTIONS=crowdsecurity/linux crowdsecurity/nginx crowdsecurity/http-cve
+      - GID=1000
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  authelia:
+    image: authelia/authelia:latest
+    container_name: authelia
+    restart: unless-stopped
     networks:
-      - proxy-network
+      homelab:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "9091:9091"
+    volumes:
+      - authelia_data:/config
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - AUTHELIA_JWT_SECRET=${AUTHELIA_JWT_SECRET}
+      - AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
+      - AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+    depends_on:
+      - redis
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== DATABASES =====
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.11
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthcheck"]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
       timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 256M
-        reservations:
-          memory: 64M
+      retries: 5
+      start_period: 30s
     labels:
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  # ==================== DASHBOARD ====================
-  
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.12
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - TZ=Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.13
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-homelab}
+      - MYSQL_USER=${MYSQL_USER:-homelab}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - TZ=Asia/Ho_Chi_Minh
+    command: '--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW'
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== AUTOMATION & WORKFLOWS =====
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.14
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
+      - TZ=Asia/Ho_Chi_Minh
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME:-n8n}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-postgres}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== UTILITIES & TOOLS =====
+
+  it-tools:
+    image: corentinth/it-tools:latest
+    container_name: it-tools
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.15
+    ports:
+      - "8282:80"
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
   homarr:
-    image: ghcr.io/ajnart/homarr:0.15.6  # Pin version
+    image: ghcr.io/ajnart/homarr:latest
     container_name: homarr
     restart: unless-stopped
-    expose:
-      - "7575"
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.16
+    ports:
+      - "7575:7575"
     volumes:
-      - homarr_configs:/app/data/configs
+      - homarr_config:/app/data/configs
       - homarr_icons:/app/public/icons
       - homarr_data:/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      TZ: "Asia/Bangkok"
-      BASE_URL: "https://${DOMAIN:-localhost}"
-      AUTH_PROVIDER: "credentials"
-      AUTH_SECRET: "${HOMARR_SECRET:-changeme}"
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7575/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 512M
-        reservations:
-          memory: 128M
+      - TZ=Asia/Ho_Chi_Minh
+      - BASE_URL=${HOMARR_BASE_URL:-http://localhost:7575}
     labels:
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  it-tools:
-    image: corentinth/it-tools:2024.5.13-a0bc346  # Pin version
-    container_name: it-tools
-    restart: unless-stopped
-    expose:
-      - "80"
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '0.2'
-          memory: 256M
-        reservations:
-          memory: 64M
-    labels:
-      - "diun.enable=true"
-
-  # ==================== DATABASE & CACHE ====================
-  
-  postgres:
-    image: postgres:16.4-alpine  # Pin version
-    container_name: postgres
-    restart: unless-stopped
-    shm_size: 512mb  # Ryzen optimization  # Important for PostgreSQL performance
-    expose:
-      - "5432"
-    environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: "postgres"
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --data-checksums"
-      PGDATA: "/var/lib/postgresql/data/pgdata"
-      TZ: "Asia/Bangkok"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - postgres_backups:/backups
-      - ./init-scripts/postgres:/docker-entrypoint-initdb.d:ro
-    networks:
-      - backend-network
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d postgres']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "autoheal=true"
-
-  redis:
-    image: redis:7.4.1-alpine  # Pin version
-    container_name: redis
-    restart: unless-stopped
-    expose:
-      - "6379"
-    volumes:
-      - redis_data:/data
-    command: >
-      redis-server
-      --appendonly yes
-      --appendfsync everysec
-      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-      --maxmemory 512mb  # 32GB RAM system
-      --maxmemory-policy allkeys-lru
-      --save 900 1
-      --save 300 10
-      --save 60 10000
-    networks:
-      - backend-network
-    healthcheck:
-      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
-        reservations:
-          memory: 256M
-    labels:
-      - "autoheal=true"
-
-  # ==================== AUTOMATION & AI ====================
-  
-  n8n:
-    image: n8nio/n8n:1.68.0  # Pin version
-    container_name: n8n
-    restart: unless-stopped
-    expose:
-      - "5678"
-    environment:
-      DB_TYPE: "postgresdb"
-      DB_POSTGRESDB_HOST: "postgres"
-      DB_POSTGRESDB_PORT: "5432"
-      DB_POSTGRESDB_DATABASE: "n8n"
-      DB_POSTGRESDB_USER: "postgres"
-      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      N8N_BASIC_AUTH_ACTIVE: "true"
-      N8N_BASIC_AUTH_USER: "admin"
-      N8N_BASIC_AUTH_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
-      EXECUTIONS_MODE: "queue"
-      QUEUE_BULL_REDIS_HOST: "redis"
-      QUEUE_BULL_REDIS_PORT: "6379"
-      QUEUE_BULL_REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-      QUEUE_HEALTH_CHECK_ACTIVE: "true"
-      N8N_DIAGNOSTICS_ENABLED: "false"
-      N8N_PERSONALIZATION_ENABLED: "false"
-      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
-      N8N_TEMPLATES_ENABLED: "true"
-      N8N_METRICS: "true"
-      N8N_PROTOCOL: "https"
-      N8N_HOST: "${DOMAIN:-localhost}"
-      WEBHOOK_URL: "https://${DOMAIN:-localhost}/webhook"
-      TZ: "Asia/Bangkok"
-      GENERIC_TIMEZONE: "Asia/Bangkok"
-    volumes:
-      - n8n_data:/home/node/.n8n
-      - n8n_files:/files
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - proxy-network
-      - backend-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          memory: 2G
-    labels:
-      - "autoheal=true"
-      - "diun.enable=true"
-
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:v0.4.5  # Pin version
-    container_name: open-webui
-    restart: unless-stopped
-    expose:
-      - "8080"
-    volumes:
-      - open-webui:/app/backend/data
-    environment:
-      OPENAI_API_BASE_URL: "${OPENAI_API_BASE_URL:-http://host.docker.internal:1234/v1}"
-      OPENAI_API_KEY: "${OPENAI_API_KEY:-lm-studio}"
-      WEBUI_AUTH: "true"
-      WEBUI_NAME: "Local AI"
-      WEBUI_SECRET_KEY: "${WEBUI_SECRET_KEY:-changeme}"
-      DATA_DIR: "/app/backend/data"
-      ENABLE_OLLAMA_API: "true"
-      ENABLE_OPENAI_API: "true"
-    network_mode: "host"  # Native Linux - direct network access
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # WSL2: Access Windows host
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          memory: 128M
-    labels:
-      - "diun.enable=true"
-
-  # ==================== FILE MANAGEMENT & STORAGE ====================
-  
   filebrowser:
-    image: filebrowser/filebrowser:v2.31.2  # Pin version
+    image: filebrowser/filebrowser:latest
     container_name: filebrowser
     restart: unless-stopped
-    user: "1000:1000"
-    expose:
-      - "80"
-    volumes:
-      - filebrowser_data:/srv
-      - filebrowser_database:/database
-      - filebrowser_config:/config
-    environment:
-      TZ: "Asia/Bangkok"
-      FB_BASEURL: "/files"
-    command: >
-      --database /database/filebrowser.db
-      --config /config/settings.json
-      --address 0.0.0.0
-      --port 80
-      --noauth=false
     networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 256M
-        reservations:
-          memory: 64M
-    labels:
-      - "autoheal=true"
-      - "diun.enable=true"
-
-  syncthing:
-    image: syncthing/syncthing:1.28.1  # Pin version
-    container_name: syncthing
-    restart: unless-stopped
-    expose:
-      - "8384"  # Web UI
+      homelab:
+        ipv4_address: 172.20.0.17
     ports:
-      - "22000:22000/tcp"  # Sync protocol - must be exposed
-      - "22000:22000/udp"
-      - "21027:21027/udp"  # Local discovery
+      - "8081:80"
     volumes:
-      - syncthing_data:/var/syncthing
-      - syncthing_sync:/sync
+      - filebrowser_data:/database
+      - ${FILEBROWSER_ROOT:-/home}:/srv
     environment:
-      PUID: "1000"
-      PGID: "1000"
-      TZ: "Asia/Bangkok"
-      STGUIADDRESS: "0.0.0.0:8384"
-    networks:
-      - proxy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8384/rest/noauth/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5
-  # ==================== STABLE DIFFUSION WEB UI ====================
-  
-  stable-diffusion-webui:
-    image: hollowhorizon/stable-diffusion-webui:latest
-    container_name: stable-diffusion-webui
-    restart: unless-stopped
-    expose:
-      - "7860"
-    ports:
-      - "7860:7860"
-    environment:
-      CLI_ARGS: "--listen --port 7860 --api --xformers --enable-insecure-extension-access --medvram --opt-split-attention --disable-safe-unpickle --no-half-vae"
-      NVIDIA_VISIBLE_DEVICES: "all"
-      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
-      TZ: "Asia/Bangkok"
-    volumes:
-      - stable_diffusion_data:/data
-      - stable_diffusion_models:/data/models
-      - stable_diffusion_outputs:/output
-      - stable_diffusion_extensions:/data/extensions
-    networks:
-      - proxy-network
-    deploy:
-      resources:
-        limits:
-          cpus: '8'
-          memory: 16G
-        reservations:
-          memory: 8G
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7860"]
-      interval: 60s
-      timeout: 30s
-      retries: 3
-      start_period: 180s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
+      - TZ=Asia/Ho_Chi_Minh
+      - FB_NOAUTH=false
     labels:
-      - "autoheal=true"
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  # ComfyUI - Node-based Stable Diffusion
+  snippet-box:
+    image: pawelmalak/snippet-box:latest
+    container_name: snippet-box
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.18
+    ports:
+      - "5000:5000"
+    volumes:
+      - snippet-box_data:/app/data
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  changedetection:
+    image: ghcr.io/dgtlmoon/changedetection.io:latest
+    container_name: changedetection
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.19
+    ports:
+      - "5050:5000"
+    volumes:
+      - changedetection_data:/datastore
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - BASE_URL=${CHANGEDETECTION_BASE_URL}
+      - PLAYWRIGHT_DRIVER_URL=ws://playwright-chrome:3000
+    depends_on:
+      - playwright-chrome
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  playwright-chrome:
+    image: browserless/chrome:latest
+    container_name: playwright-chrome
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.20
+    ports:
+      - "3003:3000"
+    environment:
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1080
+      - SCREEN_DEPTH=16
+      - ENABLE_DEBUGGER=false
+      - PREBOOT_CHROME=true
+      - CONNECTION_TIMEOUT=60000
+      - MAX_CONCURRENT_SESSIONS=10
+      - CHROME_REFRESH_TIME=3600000
+      - DEFAULT_BLOCK_ADS=true
+      - DEFAULT_STEALTH=true
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  wetty:
+    image: wettyoss/wetty:latest
+    container_name: wetty
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.21
+    ports:
+      - "3002:3000"
+    volumes:
+      - wetty_data:/home
+    environment:
+      - SSHHOST=${WETTY_SSH_HOST:-localhost}
+      - SSHPORT=${WETTY_SSH_PORT:-22}
+      - SSHUSER=${WETTY_SSH_USER}
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== AI & ML =====
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.22
+    ports:
+      - "3030:8080"
+    volumes:
+      - open-webui_data:/app/backend/data
+    environment:
+      - WEBUI_AUTH=true
+      - WEBUI_SECRET_KEY=${OPEN_WEBUI_SECRET_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TZ=Asia/Ho_Chi_Minh
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
   comfyui:
     image: yanwk/comfyui-boot:latest
     container_name: comfyui
     restart: unless-stopped
-    expose:
-      - "8188"
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.23
     ports:
       - "8188:8188"
-    environment:
-      CLI_ARGS: "--listen 0.0.0.0 --port 8188"
-      NVIDIA_VISIBLE_DEVICES: "all"
-      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
-      TZ: "Asia/Bangkok"
     volumes:
       - comfyui_data:/root
-      - stable_diffusion_models:/root/ComfyUI/models:ro
-      - comfyui_outputs:/root/ComfyUI/output
-      - comfyui_input:/root/ComfyUI/input
-      - comfyui_custom_nodes:/root/ComfyUI/custom_nodes
-    networks:
-      - proxy-network
+    environment:
+      - CLI_ARGS=--listen 0.0.0.0 --port 8188
+      - TZ=Asia/Ho_Chi_Minh
     deploy:
       resources:
-        limits:
-          cpus: '8'
-          memory: 16G
         reservations:
-          memory: 8G
           devices:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8188"]
-      interval: 60s
-      timeout: 30s
-      retries: 3
-      start_period: 180s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
     labels:
-      - "autoheal=true"
-      - "diun.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
+  stable-diffusion-webui:
+    image: atinoda/text-generation-webui:default-nightly
+    container_name: stable-diffusion-webui
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.24
+    ports:
+      - "7860:7860"
+    volumes:
+      - sd-webui_data:/app
+    environment:
+      - CLI_ARGS=--listen --xformers --enable-insecure-extension-access
+      - TZ=Asia/Ho_Chi_Minh
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
-  # Stable Diffusion Web UI
-  stable_diffusion_data:
-    driver: local
-  stable_diffusion_models:
-    driver: local
-  stable_diffusion_outputs:
-    driver: local
-  stable_diffusion_extensions:
-    driver: local
+  # ===== BACKUP & SYNC =====
 
-  # ComfyUI
-  comfyui_data:
-    driver: local
-  comfyui_outputs:
-    driver: local
-  comfyui_input:
-    driver: local
-  comfyui_custom_nodes:
-    driver: local
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:latest
+    container_name: postgres-backup
+    restart: unless-stopped
+    networks:
+      - homelab
+    volumes:
+      - postgres_backup_data:/backups
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - HEALTHCHECK_PORT=8080
+      - TZ=Asia/Ho_Chi_Minh
+    depends_on:
+      - postgres
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.25
+    ports:
+      - "8200:8200"
+    volumes:
+      - duplicati_config:/config
+      - duplicati_data:/backups
+      - ${DUPLICATI_SOURCE:-/home}:/source:ro
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  syncthing:
+    image: syncthing/syncthing:latest
+    container_name: syncthing
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.26
+    ports:
+      - "8384:8384"
+      - "22000:22000/tcp"
+      - "22000:22000/udp"
+      - "21027:21027/udp"
+    volumes:
+      - syncthing_data:/var/syncthing
+      - ${SYNCTHING_SYNC:-/home}:/sync
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== DOCUMENT MANAGEMENT =====
+
+  paperless-ngx:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless-ngx
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.27
+    ports:
+      - "8010:8000"
+    volumes:
+      - paperless_data:/usr/src/paperless/data
+      - paperless_media:/usr/src/paperless/media
+      - paperless_export:/usr/src/paperless/export
+      - paperless_consume:/usr/src/paperless/consume
+    environment:
+      - PAPERLESS_REDIS=redis://redis:6379
+      - PAPERLESS_DBHOST=postgres
+      - PAPERLESS_DBNAME=${PAPERLESS_DB_NAME:-paperless}
+      - PAPERLESS_DBUSER=${POSTGRES_USER:-postgres}
+      - PAPERLESS_DBPASS=${POSTGRES_PASSWORD}
+      - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET_KEY}
+      - PAPERLESS_URL=${PAPERLESS_URL:-http://localhost:8010}
+      - PAPERLESS_TIME_ZONE=Asia/Ho_Chi_Minh
+      - PAPERLESS_OCR_LANGUAGE=vie+eng
+      - PAPERLESS_OCR_MODE=skip
+      - PAPERLESS_ADMIN_USER=${PAPERLESS_ADMIN_USER:-admin}
+      - PAPERLESS_ADMIN_PASSWORD=${PAPERLESS_ADMIN_PASSWORD}
+      - PAPERLESS_ADMIN_MAIL=${PAPERLESS_ADMIN_MAIL}
+      - USERMAP_UID=1000
+      - USERMAP_GID=1000
+      - TZ=Asia/Ho_Chi_Minh
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"

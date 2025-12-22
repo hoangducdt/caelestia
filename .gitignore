@@ -1,0 +1,45 @@
+# Environment variables
+.env
+
+# Backup files
+*.bak
+*.backup
+backups/
+
+# Log files
+*.log
+
+# Docker volumes (handled by Docker)
+volumes/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+Desktop.ini
+$RECYCLE.BIN/
+
+# Node modules if using any custom scripts
+node_modules/
+
+# Python cache if using any scripts
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Local configuration overrides
+docker-compose.override.yml
