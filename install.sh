@@ -1540,7 +1540,7 @@ main() {
     # Done
     echo ""
     echo -e "${GREEN}"
-    cat <<COMPLETE
+    cat << "COMPLETE"
 ╔════════════════════════════════════════════════════════════╗
 ║           INSTALLATION COMPLETED SUCCESSFULLY!             ║
 ╚════════════════════════════════════════════════════════════╝
