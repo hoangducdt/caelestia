@@ -771,10 +771,10 @@ setup_meta_packages() {
 		
 		## 16.1 Themes
 		"adw-gtk-theme"                 # Adwaita GTK theme
-		#"papirus-icon-theme"            # Papirus icon theme
+		#"papirus-icon-theme"            # Papirus-Dark | Papirus icon theme
 		#"tela-circle-icon-theme-git"    # Tela Circle icon theme
 		#"whitesur-icon-theme-git"       # WhiteSur (Phong cách macOS)
-		"numix-circle-icon-theme-git"   # Numix Circle icon theme
+		"numix-circle-icon-theme-git"   # Numix-Circle | Numix Circle icon theme
 		"qt5ct-kde"                     # Qt5 configuration tool
 		"qt6ct-kde"                     # Qt6 configuration tool
 		

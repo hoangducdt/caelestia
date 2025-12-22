@@ -451,6 +451,7 @@ setup_meta_packages() {
         "i2c-tools"                     # I2C/SMBus utilities for sensors/RGB
         "dmidecode"                     # Hardware information decoder
         "fwupd"                         # Firmware update manager
+        "libnotify"
 		"inotify-tools"                 # File system event monitoring
 		
 		## 1.3 Compression Tools (Dependencies cho nhiều packages)
@@ -564,6 +565,10 @@ setup_meta_packages() {
 		"python-scipy"                  # Scientific computing
 		"python-scikit-learn"           # Machine learning
 		"jupyter-notebook"              # Interactive notebooks
+        "python-build"
+        "python-installer"
+        "python-hatch"
+        "python-hatch-vcs"
         "glibc"
         "qt6-declarative"
         "gcc-libs"
@@ -760,9 +765,15 @@ setup_meta_packages() {
 		"nwg-displays"                  # Display manager GUI
         "libcava"
         "swappy"
+        "grim"
+        "dart-sass"
+        "slurp"
+        "gpu-screen-recorder"
+        "glib2"
+        "fuzzel"
 		
 		## 15.3 Caelestia Configuration
-		"caelestia-cli"                 # Caelestia CLI tools
+		#"caelestia-cli"                 # Caelestia CLI tools
 		#"caelestia-shell"               # Caelestia shell configuration
 		"quickshell-git"                # 
 		
@@ -772,10 +783,10 @@ setup_meta_packages() {
 		
 		## 16.1 Themes
 		"adw-gtk-theme"                 # Adwaita GTK theme
-		#"papirus-icon-theme"            # Papirus icon theme
+		#"papirus-icon-theme"            # Papirus-Dark | Papirus icon theme
 		#"tela-circle-icon-theme-git"    # Tela Circle icon theme
 		#"whitesur-icon-theme-git"       # WhiteSur (Phong cách macOS)
-		"numix-circle-icon-theme-git"   # Numix Circle icon theme
+		"numix-circle-icon-theme-git"   # Numix-Circle | Numix Circle icon theme
 		"qt5ct-kde"                     # Qt5 configuration tool
 		"qt6ct-kde"                     # Qt6 configuration tool
 		
@@ -1515,13 +1526,28 @@ EOF
     log "✓ All configurations installed successfully"
 }
 
-setup_caelestia_shell() {
-    if [ "$(is_completed 'caelestia-shell')" = "yes" ]; then
-        log "✓ caelestia-shell already installed"
+setup_caelestia() {
+    if [ "$(is_completed 'caelestia')" = "yes" ]; then
+        log "✓ caelestia already installed"
         return 0
     fi
     
-    log "Installing caelestia-shell configuration..."
+    log "Installing caelestia configuration..."
+    
+    local CLI_DIR="$HOME/.local/share"
+    cd "$CLI_DIR" || error "Failed to cd to $CLI_DIR"
+    if [ -d "$CONFIG_DIR/cli/.git" ]; then
+        log "Caelestia-cli already exists, pulling latest..."
+        cd cli
+        git pull || warn "Failed to pull updates"
+    else
+        git clone https://github.com/hoangducdt/cli.git || error "Failed to clone caelestia-shell"
+        cd cli
+    fi
+    
+    python -m build --wheel
+    sudo python -m installer dist/*.whl
+    sudo cp completions/caelestia.fish /usr/share/fish/vendor_completions.d/caelestia.fish
     
     local CONFIG_DIR="$HOME/.config/quickshell"
     mkdir -p "$CONFIG_DIR"
@@ -1542,8 +1568,8 @@ setup_caelestia_shell() {
     sudo cmake --install build || error "Install failed"
     sudo chown -R "$USER:$USER" "$HOME/.config/quickshell/caelestia"
     
-    mark_completed "caelestia-shell"
-    log "✓ caelestia-shell installed"
+    mark_completed "caelestia"
+    log "✓ caelestia installed"
 }
 
 # ===== MAIN =====
@@ -1567,7 +1593,7 @@ main() {
     setup_gdm
     setup_directories
     setup_configs
-	setup_caelestia_shell
+	setup_caelestia
     
     # Done
     echo ""
