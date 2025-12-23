@@ -450,7 +450,7 @@ setup_meta_packages() {
 		"rsync"                         # File synchronization
 		"tmux"                          # Terminal multiplexer
 		"jq"                            # JSON processor - Dependency của scripts
-        "i2c-tools"                     # I2C/SMBus utilities for sensors/RGB
+        #"i2c-tools"                     # I2C/SMBus utilities for sensors/RGB
         "dmidecode"                     # Hardware information decoder
         "fwupd"                         # Firmware update manager
         "libnotify"
@@ -1849,7 +1849,7 @@ main() {
     setup_ai_ml
     setup_streaming
     setup_system_optimization
-    setup_i2c_for_rgb
+    #setup_i2c_for_rgb
     setup_gdm
     setup_directories
     setup_configs
