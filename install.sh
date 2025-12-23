@@ -825,7 +825,7 @@ setup_meta_packages() {
 		"neofetch"                      # System information
 		"fastfetch"                     # Fast system information
 		"nvtop"                         # NVIDIA GPU monitor
-        "lm-sensors"                    # Hardware monitoring sensors
+        "lm_sensors"                    # Hardware monitoring sensors
         "zenmonitor"                    # AMD Ryzen monitor GUI
         "corectrl"                      # AMD GPU/CPU control center
 		"amdgpu_top"                    # AMD GPU monitor
