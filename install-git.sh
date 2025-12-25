@@ -448,6 +448,11 @@ setup_meta_packages() {
 		"unrar"                         # RAR extraction
         "ark"                           # KDE archive manager - GUI for all formats
 		"thunar-archive-plugin"			#The Thunar Archive Plugin allows you to create and extract archive files using the file context menus in the Thunar file manager.
+		"matugen"                       # A material you color generation tool with templates
+		"cava"                          # Console audio visualizer
+        "qt6-multimedia-ffmpeg"         # Qt6 multimedia with FFmpeg
+        "dgop"                          # System telemetry for resource widgets
+        "dsearch"                       # Filesystem search engine
 		
 		## 1.4 File System Support
 		"btrfs-progs"                   # Btrfs file system utilities
@@ -940,8 +945,18 @@ setup_gaming() {
 	sudo chown -R "$USER":"$USER" /usr/lib/asf/
 
 	cd /usr/lib/asf
-	sudo git clone https://github.com/JustArchiNET/ASF-ui.git temp-ui
-	cd temp-ui
+	mkdir -p "www"
+
+	if [ -d "/usr/lib/asf/temp-ui/.git" ]; then
+        log "Repository already exists, pulling latest changes..."
+        cd temp-ui
+        sudo git pull || warn "Failed to pull latest changes, continuing with existing version"
+    else
+        log "Cloning repository..."
+        sudo git clone https://github.com/JustArchiNET/ASF-ui.git temp-ui || error "Failed to clone repository"
+        cd temp-ui
+    fi
+	
 	sudo npm install
 	sudo npm run build
 	cd ..
