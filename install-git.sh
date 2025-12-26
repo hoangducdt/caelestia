@@ -1,18 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 # Colors
 readonly RED='\e[38;2;255;0;0m'        # Đỏ thuần
 readonly GREEN='\e[38;2;0;255;0m'      # Xanh lá thuần
 readonly YELLOW='\e[38;2;255;255;0m'   # Vàng thuần
 readonly MAGENTA='\e[38;2;234;0;255m'  # Hồng tím
-readonly CYAN='\e[38;2;0;255;255m'    # Xanh lơ
+readonly CYAN='\e[38;2;0;255;255m'     # Xanh lơ
 readonly NC='\e[0m'                    # Reset màu
 
 LOG_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 readonly LOG="$HOME/setup_complete_${LOG_TIMESTAMP}.log"
+readonly ERROR_LOG="$HOME/setup_errors_${LOG_TIMESTAMP}.log"
 readonly STATE_DIR="$HOME/.cache/caelestia-setup"
 readonly STATE_FILE="$STATE_DIR/setup_state.json"
 readonly BACKUP_DIR="$HOME/Documents/caelestia-configs-${BACKUP_TIMESTAMP}"
@@ -23,11 +24,14 @@ log() {
 
 warn() {
     echo -e "${YELLOW}⚠ [$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
+    echo "[$(date +'%H:%M:%S')] $1" >> "$ERROR_LOG"
 }
 
 error() {
     echo -e "${RED}✗ [$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
+    echo "[$(date +'%H:%M:%S')] $1" >> "$ERROR_LOG"
     echo -e "${YELLOW}See log: $LOG${NC}"
+    echo -e "${YELLOW}Error log: $ERROR_LOG${NC}"
     exit 1
 }
 
@@ -37,6 +41,33 @@ ai_info() {
 
 creative_info() {
     echo -e "${CYAN}[CREATIVE]${NC} $1" | tee -a "$LOG"
+}
+
+# ===== PRE-FLIGHT CHECKS =====
+
+check_prerequisites() {
+    log "Running pre-flight checks..."
+    
+    # Check if Arch-based system
+    if [[ ! -f /etc/arch-release ]]; then
+        error "This script is designed for Arch-based systems (CachyOS)"
+    fi
+    
+    # Check disk space (minimum 50GB recommended for full install)
+    local available_gb
+    available_gb=$(df -BG "$HOME" | awk 'NR==2 {print $4}' | sed 's/G//')
+    if [[ $available_gb -lt 50 ]]; then
+        warn "Low disk space: ${available_gb}GB available (recommended: 50GB+ for full install)"
+        read -rp "Continue anyway? (y/N): " response
+        [[ ! "$response" =~ ^[Yy]$ ]] && exit 1
+    fi
+    
+    # Check internet connection
+    if ! ping -c 1 -W 2 archlinux.org &>/dev/null; then
+        error "No internet connection detected. Required for package downloads."
+    fi
+    
+    log "✓ Pre-flight checks passed"
 }
 
 # Check sudo
@@ -244,12 +275,21 @@ install_aur_package() {
 install_packages() {
     local packages=("$@")
     local failed=()
+    local total=${#packages[@]}
+    local current=0
+    
+    log "Installing $total packages..."
     
     for pkg in "${packages[@]}"; do
+        ((current++))
+        local progress=$((current * 100 / total))
+        
         if pacman -Qi "$pkg" &>/dev/null; then
+            log "[$progress%] [$current/$total] $pkg (already installed)"
             continue
         fi
         
+        log "[$progress%] [$current/$total] Installing $pkg..."
         if pacman -Si "$pkg" &>/dev/null 2>&1; then
             if ! install_package "$pkg"; then
                 failed+=("$pkg")
@@ -262,9 +302,13 @@ install_packages() {
         fi
     done
     
+    # Summary report
+    log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log "Installation summary: $((total - ${#failed[@]}))/$total packages succeeded"
     if [ ${#failed[@]} -gt 0 ]; then
-        warn "Failed packages: ${failed[*]}"
+        warn "Failed packages (${#failed[@]}): ${failed[*]}"
     fi
+    log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
 # ===== BACKUP =====
@@ -427,6 +471,7 @@ setup_meta_packages() {
 		
 		## 1.1 Base System Libraries
 		"python"                        # Core Python runtime - Dependency của nhiều tools
+        "python-numpy"                  # Numerical computing
 		"python-pip"                    # Python package manager
 		"python-virtualenv"             # Virtual environments
 		
@@ -474,6 +519,9 @@ setup_meta_packages() {
 		## 2.2 Graphics Libraries (Cài trước GPU drivers/apps)
 		"vulkan-icd-loader"             # Vulkan loader - BẮT BUỘC cho gaming/UE5
 		"lib32-vulkan-icd-loader"       # 32-bit Vulkan support
+        "lib32-vulkan-mesa-layers"
+        "lib32-mesa"
+        "lib32-libglvnd"
 		
 		## 2.3 NVIDIA Hardware Acceleration
 		"libva-nvidia-driver"           # VA-API for NVIDIA - Video acceleration
@@ -547,11 +595,10 @@ setup_meta_packages() {
 		## 5.4 Programming Languages
 		"nodejs"                        # Node.js runtime
 		"npm"                           # Node package manager
-		#"rust"                       	# Rust language - REMOVED: conflicts with rustup
+		"rustup"                       	# Rust language
 		"go"                            # Go language
 		
 		## 5.5 Python Development
-		"python-numpy"                  # Numerical computing
 		"python-pandas"                 # Data analysis
 		"python-matplotlib"             # Plotting library
 		"python-pillow"                 # Image processing
@@ -827,7 +874,6 @@ setup_meta_packages() {
 		## 19.1 System Monitors
 		"htop"                          # Interactive process viewer
 		"btop"                          # Resource monitor
-		"neofetch"                      # System information
 		"fastfetch"                     # Fast system information
 		"nvtop"                         # NVIDIA GPU monitor
         "lm_sensors"                    # Hardware monitoring sensors
@@ -850,7 +896,6 @@ setup_meta_packages() {
 		# PHASE 20: DISK & STORAGE MANAGEMENT
 		# ==========================================================================
 		
-		"gparted"                       # Partition editor GUI
 		"gnome-disk-utility"            # Disk management GUI
 		
 		# ==========================================================================
@@ -1805,7 +1850,6 @@ file://$HOME/Documents
 file://$HOME/Pictures
 file://$HOME/Videos
 file://$HOME/Music
-file://$HOME/OneDrive
 EOF
     
     mark_completed "configs"
@@ -1860,10 +1904,77 @@ EOF
     log "✓ caelestia installed"
 }
 
+# ===== POST-INSTALL VERIFICATION =====
+
+verify_installation() {
+    log "Verifying critical installations..."
+    
+    local critical_packages=(
+        "hyprland"
+        "nvidia-utils"
+        "docker"
+        "cuda"
+        "python-pytorch-cuda"
+    )
+    
+    local failed_verifications=()
+    
+    for pkg in "${critical_packages[@]}"; do
+        if ! pacman -Qi "$pkg" &>/dev/null; then
+            failed_verifications+=("$pkg")
+        fi
+    done
+    
+    if [ ${#failed_verifications[@]} -gt 0 ]; then
+        warn "Some critical packages not installed: ${failed_verifications[*]}"
+        warn "This may affect system functionality"
+        return 1
+    fi
+    
+    # Verify critical services
+    local critical_services=(
+        "docker"
+        "systemd-resolved"
+        "NetworkManager"
+    )
+    
+    for svc in "${critical_services[@]}"; do
+        if ! systemctl is-enabled "$svc" &>/dev/null; then
+            warn "Service $svc is not enabled"
+        fi
+    done
+    
+    log "✓ Installation verification complete"
+}
+
+# ===== GENERATE SUMMARY REPORT =====
+
+generate_summary() {
+    log "Generating installation summary..."
+    
+    cat > "$HOME/caelestia-install-summary.txt" << EOF
+╔════════════════════════════════════════════════════════════╗
+║        CAELESTIA INSTALLATION SUMMARY                      ║
+╚════════════════════════════════════════════════════════════╝
+
+Installation Date: $(date '+%Y-%m-%d %H:%M:%S')
+
+Logs:
+  - Main log: $LOG
+  - Error log: $ERROR_LOG
+
+Backups: $BACKUP_DIR
+
+EOF
+    
+    log "✓ Summary saved to: $HOME/caelestia-install-summary.txt"
+}
+
 # ===== MAIN =====
 
 main() {
     show_banner
+    check_prerequisites
     init_state
     handle_conflicts
     install_helper
@@ -1883,6 +1994,8 @@ main() {
     setup_directories
     setup_configs
 	setup_caelestia
+    verify_installation
+    generate_summary
     
     # Done
     echo ""
@@ -1897,6 +2010,13 @@ COMPLETE
     echo "Logs: $LOG"
     echo "Backup: $BACKUP_DIR"
     echo ""
+    
+    # Prompt for reboot
+    read -rp "Installation complete. Reboot now? (y/N): " response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        log "Rebooting system..."
+        sudo reboot
+    fi
 }
 
 main "$@"
